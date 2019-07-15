@@ -1,0 +1,6 @@
+python-consul==1.0.1
+pydes==2.0.1
+kubernetes==6.0.0
+hvac==0.7.0
+urllib3==1.24.2
+ldif3==3.2.2

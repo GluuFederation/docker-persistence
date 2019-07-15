@@ -1,0 +1,56 @@
+{
+
+  "gluu_user": [
+    "objectClass",
+    "oxStatus",
+    "creationDate",
+    "ou",
+    "uid",
+    "oxDeletable",
+    "oxAuthExpiration",
+    "mail",
+    "inum",
+    "displayName"
+  ],
+
+  "gluu": [
+    "objectClass",
+    "oxScriptType",
+    "oxAuthExpiration",
+    "oxAuthCreation",
+    "oxAuthClientSecretExpiresAt",
+    "creationDate",
+    "oxAuthTokenCode",
+    "inum",
+    "displayName",
+    "oxAuthRegistrationAccessToken",
+    "uid",
+    "oxAuthGrantId",
+    "oxAuthAuthorizationCode",
+    "oxAuthClaimName",
+    "mail",
+    "oxId",
+    "oxTicket",
+    "oxDeletable",
+    "oxAuthSessionDn",
+    "oxAuthClientId"
+  ],
+
+  "gluu_site": [
+    "objectClass",
+    "inum"
+  ],
+
+  "gluu_statistic": [
+    "objectClass",
+    "ou",
+    "oxStartDate",
+    "oxDeletable",
+    "oxAuthExpiration"
+  ],
+
+  "gluu_cache": [
+    "uniqueIdentifier"
+  ]
+
+}
