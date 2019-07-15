@@ -7,7 +7,8 @@ FROM alpine:3.9
 RUN apk update && apk add --no-cache \
     py-pip \
     wget \
-    shadow
+    shadow \
+    git
 
 # ====
 # Tini

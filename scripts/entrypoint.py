@@ -1,18 +1,18 @@
-import base64
 import json
 import logging
+import logging.config
 import os
-import re
-import shlex
-import subprocess
 import time
 
-import pyDes
 import requests
 from ldif3 import LDIFParser
 
+from pygluu.containerlib import get_manager
+from pygluu.containerlib.utils import decode_text
+from pygluu.containerlib.utils import safe_render
+
 from cbm import CBM
-from gluulib import get_manager
+from settings import LOGGING_CONFIG
 
 GLUU_CACHE_TYPE = os.environ.get("GLUU_CACHE_TYPE", "NATIVE_PERSISTENCE")
 GLUU_OXTRUST_CONFIG_GENERATION = os.environ.get("GLUU_OXTRUST_CONFIG_GENERATION", True)
@@ -22,12 +22,8 @@ GLUU_COUCHBASE_URL = os.environ.get("GLUU_COUCHBASE_URL", "localhost")
 
 manager = get_manager()
 
+logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("entrypoint")
-logger.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-fmt = logging.Formatter('%(levelname)s - %(name)s - %(asctime)s - %(message)s')
-ch.setFormatter(fmt)
-logger.addHandler(ch)
 
 
 def get_key_from(dn):
@@ -38,13 +34,6 @@ def get_key_from(dn):
 
     # the actual key
     return '_'.join(dns) or "_"
-
-
-def decrypt_text(encrypted_text, key):
-    cipher = pyDes.triple_des(b"{}".format(key), pyDes.ECB,
-                              padmode=pyDes.PAD_PKCS5)
-    encrypted_text = b"{}".format(base64.b64decode(encrypted_text))
-    return cipher.decrypt(encrypted_text)
 
 
 def configure_couchbase(cbm):
@@ -279,13 +268,6 @@ def render_ldif(src, dst, ctx):
         f.write(safe_render(txt, ctx))
 
 
-def safe_render(text, ctx):
-    text = re.sub(r"%([^\(])", r"%%\1", text)
-    # There was a % at the end?
-    text = re.sub(r"%$", r"%%", text)
-    return text % ctx
-
-
 def prepare_template_ctx():
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
@@ -431,17 +413,6 @@ def reindent(text, num_spaces=1):
     return text
 
 
-def exec_cmd(cmd):
-    args = shlex.split(cmd)
-    popen = subprocess.Popen(args,
-                             stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-    stdout, stderr = popen.communicate()
-    retcode = popen.returncode
-    return stdout, stderr, retcode
-
-
 def import_cert(user, password):
     txt = manager.secret.get("couchbase_cluster_cert")
     base_url = "https://{}:18091".format(GLUU_COUCHBASE_URL)
@@ -465,17 +436,10 @@ def import_cert(user, password):
         logger.warn("Unable to reload node cert; reason={}".format(req.text))
 
 
-def encrypt_text(text, key):
-    cipher = pyDes.triple_des(b"{}".format(key), pyDes.ECB,
-                              padmode=pyDes.PAD_PKCS5)
-    encrypted_text = cipher.encrypt(b"{}".format(text))
-    return base64.b64encode(encrypted_text)
-
-
 def main():
     hostname = GLUU_COUCHBASE_URL
     user = manager.config.get("couchbase_server_user")
-    password = decrypt_text(
+    password = decode_text(
         manager.secret.get("encoded_couchbase_server_pw"),
         manager.secret.get("encoded_salt"),
     )

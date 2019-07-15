@@ -40,14 +40,16 @@ deps="config,secret"
 if [ "${GLUU_PERSISTENCE_TYPE}" = "hybrid" ]; then
     # deps="${deps},ldap,couchbase"
     deps="${deps},couchbase"
+    conn_only="couchbase"
 else
     deps="${deps},${GLUU_PERSISTENCE_TYPE}"
+    conn_only="${GLUU_PERSISTENCE_TYPE}"
 fi
 
 if [ -f /etc/redhat-release ]; then
-    source scl_source enable python27 && python /app/scripts/wait_for.py --deps="$deps"
+    source scl_source enable python27 && gluu-wait --deps="$deps" --conn-only="$conn_only"
 else
-    python /app/scripts/wait_for.py --deps="$deps"
+    gluu-wait --deps="$deps" --conn-only="$conn_only"
 fi
 
 if [ -f /etc/redhat-release ]; then
