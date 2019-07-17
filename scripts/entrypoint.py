@@ -10,6 +10,7 @@ from ldif3 import LDIFParser
 from pygluu.containerlib import get_manager
 from pygluu.containerlib.utils import decode_text
 from pygluu.containerlib.utils import safe_render
+from pygluu.containerlib.utils import generate_base64_contents
 
 from cbm import CBM
 from settings import LOGGING_CONFIG
@@ -387,13 +388,6 @@ def oxtrust_config():
             else:
                 ctx_manager = manager.secret
             ctx_manager.set(key, generate_base64_contents(fp.read() % ctx))
-
-
-def generate_base64_contents(text, num_spaces=1):
-    text = text.encode("base64").strip()
-    if num_spaces > 0:
-        text = reindent(text, num_spaces)
-    return text
 
 
 def as_boolean(val, default=False):
