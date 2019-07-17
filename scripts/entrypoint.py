@@ -155,31 +155,33 @@ def create_buckets(cbm, bucket_mappings, bucket_type="couchbase"):
 
 
 def create_indexes(cbm, bucket_mappings):
+    buckets = [mapping["bucket"] for _, mapping in bucket_mappings.iteritems()]
+
     with open("/app/static/index.json") as f:
         indexes = json.loads(f.read())
 
-    for _, mapping in bucket_mappings.iteritems():
-        if mapping["bucket"] not in indexes:
+    for bucket in buckets:
+        if bucket not in indexes:
             continue
 
-        query_file = "/app/tmp/index_{}.n1ql".format(mapping["bucket"])
+        query_file = "/app/tmp/index_{}.n1ql".format(bucket)
 
-        logger.info("Running Couchbase index creation for {} bucket".format(mapping["bucket"]))
+        logger.info("Running Couchbase index creation for {} bucket (if not exist)".format(bucket))
 
         with open(query_file, "w") as f:
-            f.write('CREATE PRIMARY INDEX def_primary on `%s` USING GSI WITH {"defer_build":true};\n' % (mapping["bucket"]))
+            f.write('CREATE PRIMARY INDEX def_primary on `%s` USING GSI WITH {"defer_build":true};\n' % (bucket))
 
-            index_list = indexes[mapping["bucket"]]
+            index_list = indexes[bucket]
             if "dn" not in index_list:
                 index_list.insert(0, "dn")
 
             index_names = ["def_primary"]
             for index in index_list:
-                index_name = "def_{0}_{1}".format(mapping["bucket"], index)
-                f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, mapping["bucket"], index))
+                index_name = "def_{0}_{1}".format(bucket, index)
+                f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket, index))
                 index_names.append(index_name)
 
-            f.write('BUILD INDEX ON `%s` (%s) USING GSI;\n' % (mapping["bucket"], ', '.join(index_names)))
+            f.write('BUILD INDEX ON `%s` (%s) USING GSI;\n' % (bucket, ', '.join(index_names)))
 
         # exec query
         with open(query_file) as f:
@@ -189,7 +191,13 @@ def create_indexes(cbm, bucket_mappings):
                     continue
                 req = cbm.exec_query(query)
                 if not req.ok:
-                    logger.warn("Failed to execute query, reason={}".format(req.text))
+                    # the following code should be ignored
+                    # - 4300: index already exists
+                    # - 5000: index already built
+                    error = req.json()["errors"][0]
+                    if error["code"] in (4300, 5000):
+                        continue
+                    logger.warn("Failed to execute query, reason={}".format(error["msg"]))
 
 
 def transform_values(seq):
@@ -234,8 +242,6 @@ def import_ldif(cbm, bucket_mappings):
             render_ldif(src, dst, ctx)
             parser = LDIFParser(open(dst))
 
-            logger.info("Importing {} file into {} bucket".format(file_, mapping["bucket"]))
-
             query_file = "/app/tmp/{}.n1ql".format(file_)
 
             with open(query_file, "a+") as f:
@@ -247,18 +253,22 @@ def import_ldif(cbm, bucket_mappings):
                     entry["dn"] = [dn]
                     entry = transform_entry(entry)
                     data = json.dumps(entry)
-                    query = 'UPSERT INTO `%s` (KEY, VALUE) VALUES ("%s", %s);\n' % (mapping["bucket"], key, data)
+                    # using INSERT will cause duplication error,
+                    # but the data is left intact
+                    query = 'INSERT INTO `%s` (KEY, VALUE) VALUES ("%s", %s);\n' % (mapping["bucket"], key, data)
                     f.write(query)
 
             # exec query
+            logger.info("Importing {} file into {} bucket (if needed)".format(file_, mapping["bucket"]))
             with open(query_file) as f:
                 for line in f:
                     query = line.strip()
                     if not query:
                         continue
+
                     req = cbm.exec_query(query)
                     if not req.ok:
-                        logger.warn("Failed to execute query, reason={}".format(req.text))
+                        logger.warn("Failed to execute query, reason={}".format(req.json()))
 
 
 def render_ldif(src, dst, ctx):
@@ -441,12 +451,11 @@ def main():
 
     configure_couchbase(cbm)
 
-    bucket_mappings = get_bucket_mappings()
-
     time.sleep(5)
     import_cert(user, password)
 
     time.sleep(5)
+    bucket_mappings = get_bucket_mappings()
     create_buckets(cbm, bucket_mappings)
 
     time.sleep(5)
