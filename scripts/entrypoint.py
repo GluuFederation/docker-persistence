@@ -11,6 +11,7 @@ from pygluu.containerlib import get_manager
 from pygluu.containerlib.utils import decode_text
 from pygluu.containerlib.utils import safe_render
 from pygluu.containerlib.utils import generate_base64_contents
+from pygluu.containerlib.utils import as_boolean
 
 from cbm import CBM
 from settings import LOGGING_CONFIG
@@ -109,7 +110,11 @@ def get_bucket_mappings():
         "cache": {
             "bucket": "gluu_cache",
             "files": [],
-        }
+        },
+        "authorization": {
+            "bucket": "gluu_authorization",
+            "files": [],
+        },
     }
 
     if GLUU_PERSISTENCE_TYPE != "couchbase":
@@ -280,6 +285,21 @@ def render_ldif(src, dst, ctx):
 
 
 def prepare_template_ctx():
+    passport_oxtrust_config = '''
+    "passportUmaClientId":"%(passport_rs_client_id)s",
+    "passportUmaClientKeyId":"",
+    "passportUmaResourceId":"%(passport_resource_id)s",
+    "passportUmaScope":"https://%(hostname)s/oxauth/restv1/uma/scopes/passport_access",
+    "passportUmaClientKeyStoreFile":"%(passport_rs_client_jks_fn)s",
+    "passportUmaClientKeyStorePassword":"%(passport_rs_client_jks_pass_encoded)s",
+''' % {
+        "passport_rs_client_id": manager.config.get("passport_rs_client_id"),
+        "passport_resource_id": manager.config.get("passport_resource_id"),
+        "hostname": manager.config.get("hostname"),
+        "passport_rs_client_jks_fn": manager.config.get("passport_rs_client_jks_fn"),
+        "passport_rs_client_jks_pass_encoded": manager.secret.get("passport_rs_client_jks_pass_encoded")
+    }
+
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
         # 'redis_url': GLUU_REDIS_URL,
@@ -375,6 +395,7 @@ def prepare_template_ctx():
         "oxtrust_resource_server_client_id": manager.config.get("oxtrust_resource_server_client_id"),
         "oxtrust_resource_id": manager.config.get("oxtrust_resource_id"),
         "passport_resource_id": manager.config.get("passport_resource_id"),
+        "passport_oxtrust_config": passport_oxtrust_config,
     }
     return ctx
 
@@ -400,44 +421,51 @@ def oxtrust_config():
             ctx_manager.set(key, generate_base64_contents(fp.read() % ctx))
 
 
-def as_boolean(val, default=False):
-    truthy = set(('t', 'T', 'true', 'True', 'TRUE', '1', 1, True))
-    falsy = set(('f', 'F', 'false', 'False', 'FALSE', '0', 0, False))
-
-    if val in truthy:
-        return True
-    if val in falsy:
-        return False
-    return default
-
-
-def reindent(text, num_spaces=1):
-    text = [(num_spaces * " ") + line.lstrip() for line in text.splitlines()]
-    text = "\n".join(text)
-    return text
-
-
-def import_cert(user, password):
+def import_cert(cbm, user, password):
     txt = manager.secret.get("couchbase_cluster_cert")
     base_url = "https://{}:18091".format(GLUU_COUCHBASE_URL)
 
-    req = requests.post(
+    session = requests.Session()
+    session.auth = (user, password)
+    session.verify = False
+
+    req = session.post(
         "{}/controller/uploadClusterCA".format(base_url),
-        auth=requests.auth.HTTPBasicAuth(user, password),
         headers={"Content-Type": "application/octet-stream"},
         data=txt,
-        verify=False,
     )
     if not req.ok:
         logger.warn("Unable to upload cluster cert; reason={}".format(req.text))
 
-    req = requests.post(
-        "{}/node/controller/reloadCertificate".format(base_url),
-        auth=requests.auth.HTTPBasicAuth(user, password),
-        verify=False,
-    )
+    req = session.post("{}/node/controller/reloadCertificate".format(base_url))
     if not req.ok:
         logger.warn("Unable to reload node cert; reason={}".format(req.text))
+
+    # req = session.post(
+    #     "{}/settings/clientCertAuth".format(base_url),
+    #     json={"state": "enable", "prefixes": [
+    #         {"path": "subject.cn", "prefix": "", "delimiter": ""},
+    #     ]},
+    # )
+    # if not req.ok:
+    #     logger.warn("Unable to set client cert auth; reason={}".format(req.text))
+
+    # cluster_cert = manager.secret.get("couchbase_cluster_cert")
+    # if not cluster_cert:
+    #     with open("/etc/certs/couchbase.pem", "w") as f:
+    #         f.write(cbm.get_certificate())
+    #         manager.secret.from_file("couchbase_cluster_cert", "/etc/certs/couchbase.pem")
+    # else:
+    #     base_url = "https://{}:18091".format(GLUU_COUCHBASE_URL)
+    #     req = requests.post(
+    #         "{}/controller/uploadClusterCA".format(base_url),
+    #         auth=requests.auth.HTTPBasicAuth(user, password),
+    #         headers={"Content-Type": "application/octet-stream"},
+    #         data=cluster_cert,
+    #         verify=False,
+    #     )
+    #     if not req.ok:
+    #         logger.warn("Unable to upload cluster cert; reason={}".format(req.text))
 
 
 def main():
@@ -452,7 +480,7 @@ def main():
     configure_couchbase(cbm)
 
     time.sleep(5)
-    import_cert(user, password)
+    import_cert(cbm, user, password)
 
     time.sleep(5)
     bucket_mappings = get_bucket_mappings()

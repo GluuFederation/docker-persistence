@@ -25,10 +25,10 @@ esac
 # check mapping used by LDAP
 if [ "${GLUU_PERSISTENCE_TYPE}" = "hybrid" ]; then
     case "${GLUU_PERSISTENCE_LDAP_MAPPING}" in
-        default|user|cache|site|statistic)
+        default|user|cache|site|statistic|authorization)
             ;;
         *)
-            echo "unsupported GLUU_PERSISTENCE_LDAP_MAPPING value; please choose 'default', 'user', 'cache', 'site', or 'statistic'"
+            echo "unsupported GLUU_PERSISTENCE_LDAP_MAPPING value; please choose 'default', 'user', 'cache', 'site', 'statistic', or 'authorization'"
             exit 1
             ;;
     esac
