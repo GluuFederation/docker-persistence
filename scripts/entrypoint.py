@@ -425,47 +425,30 @@ def import_cert(cbm, user, password):
     txt = manager.secret.get("couchbase_cluster_cert")
     base_url = "https://{}:18091".format(GLUU_COUCHBASE_URL)
 
-    session = requests.Session()
-    session.auth = (user, password)
-    session.verify = False
+    with requests.Session() as session:
+        session.auth = (user, password)
+        session.verify = False
 
-    req = session.post(
-        "{}/controller/uploadClusterCA".format(base_url),
-        headers={"Content-Type": "application/octet-stream"},
-        data=txt,
-    )
-    if not req.ok:
-        logger.warn("Unable to upload cluster cert; reason={}".format(req.text))
+        req = session.post(
+            "{}/controller/uploadClusterCA".format(base_url),
+            headers={"Content-Type": "application/octet-stream"},
+            data=txt,
+        )
+        if not req.ok:
+            logger.warn("Unable to upload cluster cert; reason={}".format(req.text))
 
-    req = session.post("{}/node/controller/reloadCertificate".format(base_url))
-    if not req.ok:
-        logger.warn("Unable to reload node cert; reason={}".format(req.text))
+        req = session.post("{}/node/controller/reloadCertificate".format(base_url))
+        if not req.ok:
+            logger.warn("Unable to reload node cert; reason={}".format(req.text))
 
-    # req = session.post(
-    #     "{}/settings/clientCertAuth".format(base_url),
-    #     json={"state": "enable", "prefixes": [
-    #         {"path": "subject.cn", "prefix": "", "delimiter": ""},
-    #     ]},
-    # )
-    # if not req.ok:
-    #     logger.warn("Unable to set client cert auth; reason={}".format(req.text))
-
-    # cluster_cert = manager.secret.get("couchbase_cluster_cert")
-    # if not cluster_cert:
-    #     with open("/etc/certs/couchbase.pem", "w") as f:
-    #         f.write(cbm.get_certificate())
-    #         manager.secret.from_file("couchbase_cluster_cert", "/etc/certs/couchbase.pem")
-    # else:
-    #     base_url = "https://{}:18091".format(GLUU_COUCHBASE_URL)
-    #     req = requests.post(
-    #         "{}/controller/uploadClusterCA".format(base_url),
-    #         auth=requests.auth.HTTPBasicAuth(user, password),
-    #         headers={"Content-Type": "application/octet-stream"},
-    #         data=cluster_cert,
-    #         verify=False,
-    #     )
-    #     if not req.ok:
-    #         logger.warn("Unable to upload cluster cert; reason={}".format(req.text))
+        # req = session.post(
+        #     "{}/settings/clientCertAuth".format(base_url),
+        #     json={"state": "enable", "prefixes": [
+        #         {"path": "subject.cn", "prefix": "", "delimiter": ""},
+        #     ]},
+        # )
+        # if not req.ok:
+        #     logger.warn("Unable to set client cert auth; reason={}".format(req.text))
 
 
 def main():
