@@ -133,7 +133,7 @@ def create_buckets(cbm, bucket_mappings, bucket_type="couchbase"):
     bucket_nums = len(bucket_mappings)
 
     if GLUU_PERSISTENCE_TYPE == "hybrid" and GLUU_PERSISTENCE_LDAP_MAPPING == "default":
-        # 2. always create `gluu` bucket
+        # always create `gluu` bucket
         ramsize = 100
         total_ramsize -= ramsize
         logger.info("Creating bucket {0} with type {1} and RAM size {2}".format("gluu", bucket_type, ramsize))
@@ -422,6 +422,8 @@ def oxtrust_config():
 
 
 def import_cert(cbm, user, password):
+    logger.info("Updating certificates")
+
     txt = manager.secret.get("couchbase_cluster_cert")
     base_url = "https://{}:18091".format(GLUU_COUCHBASE_URL)
 
@@ -437,6 +439,7 @@ def import_cert(cbm, user, password):
         if not req.ok:
             logger.warn("Unable to upload cluster cert; reason={}".format(req.text))
 
+        time.sleep(5)
         req = session.post("{}/node/controller/reloadCertificate".format(base_url))
         if not req.ok:
             logger.warn("Unable to reload node cert; reason={}".format(req.text))
