@@ -3,6 +3,7 @@ import logging
 import logging.config
 import os
 import time
+from collections import OrderedDict
 
 import requests
 from ldif3 import LDIFParser
@@ -71,14 +72,13 @@ def configure_couchbase(cbm):
 
 
 def get_bucket_mappings():
-    bucket_mappings = {
+    bucket_mappings = OrderedDict({
         "default": {
             "bucket": "gluu",
             "files": [
                 "base.ldif",
                 "attributes.ldif",
                 "scopes.ldif",
-                "clients.ldif",
                 "scripts.ldif",
                 "configuration.ldif",
                 "scim.ldif",
@@ -86,7 +86,10 @@ def get_bucket_mappings():
                 "oxtrust_api.ldif",
                 "passport.ldif",
                 "oxpassport-config.ldif",
+                "gluu_radius_base.ldif",
+                "gluu_radius_server.ldif",
             ],
+            "mem_alloc": [0.05, 100],
         },
         "user": {
             "bucket": "gluu_user",
@@ -94,50 +97,89 @@ def get_bucket_mappings():
                 "people.ldif",
                 "groups.ldif",
             ],
+            "mem_alloc": [0.25, 500],
         },
-        "site": {
-            "bucket": "gluu_site",
-            "files": [
-                "o_site.ldif",
-            ],
+        "cache": {
+            "bucket": "gluu_cache",
+            "files": [],
+            "mem_alloc": [0.15, 400],
         },
         "statistic": {
             "bucket": "gluu_statistic",
             "files": [
                 "o_metric.ldif",
             ],
+            "mem_alloc": [0.05, 100],
         },
-        "cache": {
-            "bucket": "gluu_cache",
-            "files": [],
+        "site": {
+            "bucket": "gluu_site",
+            "files": [
+                "o_site.ldif",
+            ],
+            "mem_alloc": [0.05, 100],
         },
         "authorization": {
             "bucket": "gluu_authorization",
             "files": [],
+            "mem_alloc": [0.15, 400],
         },
-    }
+        "tokens": {
+            "bucket": "gluu_tokens",
+            "files": [],
+            "mem_alloc": [0.25, 500],
+        },
+        "clients": {
+            "bucket": "gluu_clients",
+            "files": [
+                "clients.ldif",
+                "oxtrust_api_clients.ldif",
+                "scim_clients.ldif",
+                "gluu_radius_clients.ldif",
+            ],
+            "mem_alloc": [0.05, 100],
+        },
+    })
 
     if GLUU_PERSISTENCE_TYPE != "couchbase":
-        bucket_mappings = {
+        bucket_mappings = OrderedDict({
             name: mapping for name, mapping in bucket_mappings.iteritems()
             if name != GLUU_PERSISTENCE_LDAP_MAPPING
-        }
+        })
 
     return bucket_mappings
 
 
+def calculate_bucket_memory(name, bucket_mappings, server_mem):
+    min_bucket_mem = 100
+
+    total_ratio = int(
+        sum([v["mem_alloc"][0] for v in bucket_mappings.values()])
+    )
+
+    mem_alloc = bucket_mappings[name]["mem_alloc"]
+    calc_size = int((mem_alloc[0] / total_ratio) * server_mem)
+
+    # if server_mem >= default_server_mem:
+    #     calc_size = max(size, mem_alloc[1])
+    # else:
+    #     calc_size = max(size, min_bucket_mem)
+    return max(calc_size, min_bucket_mem)
+
+
 def create_buckets(cbm, bucket_mappings, bucket_type="couchbase"):
     sys_info = cbm.get_system_info()
-    total_ramsize = sys_info["memoryQuota"]
+    # NOTE: the RAM has been taken by index memory (256M)
+    total_memsize = sys_info["memoryQuota"] - 256
 
-    bucket_nums = len(bucket_mappings)
+    logger.info("Memory size for Couchbase buckets was determined as {} MB".format(total_memsize))
 
     if GLUU_PERSISTENCE_TYPE == "hybrid" and GLUU_PERSISTENCE_LDAP_MAPPING == "default":
         # always create `gluu` bucket
-        ramsize = 100
-        total_ramsize -= ramsize
-        logger.info("Creating bucket {0} with type {1} and RAM size {2}".format("gluu", bucket_type, ramsize))
-        req = cbm.add_bucket("gluu", ramsize, bucket_type)
+        memsize = 100
+        total_memsize -= memsize
+
+        logger.info("Creating bucket {0} with type {1} and RAM size {2}".format("gluu", bucket_type, memsize))
+        req = cbm.add_bucket("gluu", memsize, bucket_type)
         if not req.ok:
             logger.warn("Failed to create bucket {}; reason={}".format("gluu", req.text))
 
@@ -147,14 +189,14 @@ def create_buckets(cbm, bucket_mappings, bucket_type="couchbase"):
     else:
         remote_buckets = tuple([])
 
-    for _, mapping in bucket_mappings.iteritems():
+    for name, mapping in bucket_mappings.iteritems():
         if mapping["bucket"] in remote_buckets:
             continue
 
-        ramsize = total_ramsize / bucket_nums
+        memsize = calculate_bucket_memory(name, bucket_mappings, total_memsize)
 
-        logger.info("Creating bucket {0} with type {1} and RAM size {2}".format(mapping["bucket"], bucket_type, ramsize))
-        req = cbm.add_bucket(mapping["bucket"], ramsize, bucket_type)
+        logger.info("Creating bucket {0} with type {1} and RAM size {2}".format(mapping["bucket"], bucket_type, memsize))
+        req = cbm.add_bucket(mapping["bucket"], memsize, bucket_type)
         if not req.ok:
             logger.warn("Failed to create bucket {}; reason={}".format(mapping["bucket"], req.text))
 
@@ -205,6 +247,25 @@ def create_indexes(cbm, bucket_mappings):
                     logger.warn("Failed to execute query, reason={}".format(error["msg"]))
 
 
+def prepare_list_attrs():
+    attrs = ["member"]
+
+    with open("/app/static/gluu_schema.json") as f:
+        gluu_schema = json.loads(f.read())
+
+    for type_, objects in gluu_schema.iteritems():
+        if type_ not in ("objectClasses", "attributeTypes"):
+            continue
+
+        for obj in objects:
+            if not obj.get("multivalued"):
+                continue
+            attrs += obj["names"]
+
+    # make the list
+    return list(set(attrs))
+
+
 def transform_values(seq):
     values = []
     for item in seq:
@@ -214,9 +275,7 @@ def transform_values(seq):
     return values
 
 
-def transform_entry(entry):
-    list_attrs = ["member"]
-
+def transform_entry(entry, list_attrs):
     for k, v in entry.iteritems():
         v = transform_values(v)
 
@@ -239,6 +298,7 @@ def transform_entry(entry):
 
 def import_ldif(cbm, bucket_mappings):
     ctx = prepare_template_ctx()
+    list_attrs = prepare_list_attrs()
 
     for _, mapping in bucket_mappings.iteritems():
         for file_ in mapping["files"]:
@@ -256,7 +316,7 @@ def import_ldif(cbm, bucket_mappings):
 
                     key = get_key_from(dn)
                     entry["dn"] = [dn]
-                    entry = transform_entry(entry)
+                    entry = transform_entry(entry, list_attrs)
                     data = json.dumps(entry)
                     # using INSERT will cause duplication error,
                     # but the data is left intact
@@ -396,6 +456,13 @@ def prepare_template_ctx():
         "oxtrust_resource_id": manager.config.get("oxtrust_resource_id"),
         "passport_resource_id": manager.config.get("passport_resource_id"),
         "passport_oxtrust_config": passport_oxtrust_config,
+
+        "gluu_radius_client_id": manager.config.get("gluu_radius_client_id"),
+        "gluu_ro_encoded_pw": manager.secret.get("gluu_ro_encoded_pw"),
+        "super_gluu_ro_session_script": manager.config.get("super_gluu_ro_session_script"),
+        "super_gluu_ro_script": manager.config.get("super_gluu_ro_script"),
+        "enableRadiusScripts": "false",
+        "gluu_ro_client_base64_jwks": manager.secret.get("gluu_ro_client_base64_jwks"),
     }
     return ctx
 
