@@ -74,6 +74,16 @@ ENV GLUU_PERSISTENCE_TYPE=couchbase \
     GLUU_COUCHBASE_URL=localhost \
     GLUU_LDAP_URL=localhost:1636
 
+# ===========
+# Generic ENV
+# ===========
+
+ENV GLUU_CACHE_TYPE=IN_MEMORY \
+    GLUU_REDIS_URL=localhost:6379 \
+    GLUU_REDIS_TYPE=STANDALONE \
+    GLUU_MEMCACHED_URL=localhost:11211
+
+
 # ====
 # misc
 # ====

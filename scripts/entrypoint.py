@@ -18,6 +18,10 @@ from cbm import CBM
 from settings import LOGGING_CONFIG
 
 GLUU_CACHE_TYPE = os.environ.get("GLUU_CACHE_TYPE", "NATIVE_PERSISTENCE")
+GLUU_REDIS_URL = os.environ.get('GLUU_REDIS_URL', 'localhost:6379')
+GLUU_REDIS_TYPE = os.environ.get('GLUU_REDIS_TYPE', 'STANDALONE')
+GLUU_MEMCACHED_URL = os.environ.get('GLUU_MEMCACHED_URL', 'localhost:11211')
+
 GLUU_OXTRUST_CONFIG_GENERATION = os.environ.get("GLUU_OXTRUST_CONFIG_GENERATION", True)
 GLUU_PERSISTENCE_TYPE = os.environ.get("GLUU_PERSISTENCE_TYPE", "couchbase")
 GLUU_PERSISTENCE_LDAP_MAPPING = os.environ.get("GLUU_PERSISTENCE_LDAP_MAPPING", "default")
@@ -362,9 +366,9 @@ def prepare_template_ctx():
 
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
-        # 'redis_url': GLUU_REDIS_URL,
-        # 'redis_type': GLUU_REDIS_TYPE,
-        # 'memcached_url': GLUU_MEMCACHED_URL,
+        'redis_url': GLUU_REDIS_URL,
+        'redis_type': GLUU_REDIS_TYPE,
+        'memcached_url': GLUU_MEMCACHED_URL,
         'ldap_hostname': manager.config.get('ldap_init_host', ""),
         'ldaps_port': manager.config.get('ldap_init_port', 1636),
         'ldap_binddn': manager.config.get('ldap_binddn'),
