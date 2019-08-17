@@ -88,11 +88,20 @@ ENV GLUU_CACHE_TYPE=IN_MEMORY \
 # misc
 # ====
 
+LABEL name="Persistence" \
+    maintainer="Gluu Inc. <support@gluu.org>" \
+    vendor="Gluu Federation" \
+    version="4.0.0" \
+    release="dev" \
+    summary="Gluu Persistence" \
+    description="Generate initial data for persistence layer"
+
 RUN mkdir -p /app/tmp /etc/certs
 
 COPY scripts /app/scripts
 COPY static /app/static
 COPY templates /app/templates
+RUN chmod +x /app/scripts/entrypoint.sh
 
 ENTRYPOINT ["tini", "-g", "--"]
-CMD ["sh", "/app/scripts/entrypoint.sh"]
+CMD ["/app/scripts/entrypoint.sh"]

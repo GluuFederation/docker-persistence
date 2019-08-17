@@ -127,13 +127,13 @@ def get_bucket_mappings():
             "files": [],
             "mem_alloc": [0.15, 400],
         },
-        "tokens": {
-            "bucket": "gluu_tokens",
+        "token": {
+            "bucket": "gluu_token",
             "files": [],
             "mem_alloc": [0.25, 500],
         },
-        "clients": {
-            "bucket": "gluu_clients",
+        "client": {
+            "bucket": "gluu_client",
             "files": [
                 "clients.ldif",
                 "oxtrust_api_clients.ldif",
