@@ -139,6 +139,7 @@ def get_bucket_mappings():
                 "oxtrust_api_clients.ldif",
                 "scim_clients.ldif",
                 "gluu_radius_clients.ldif",
+                "passport_clients.ldif",
             ],
             "mem_alloc": [0.05, 100],
         },
