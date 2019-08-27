@@ -6,6 +6,8 @@ import time
 from collections import OrderedDict
 
 import requests
+from ldap3 import Connection
+from ldap3 import Server
 from ldif3 import LDIFParser
 
 from pygluu.containerlib import get_manager
@@ -26,8 +28,7 @@ GLUU_OXTRUST_CONFIG_GENERATION = os.environ.get("GLUU_OXTRUST_CONFIG_GENERATION"
 GLUU_PERSISTENCE_TYPE = os.environ.get("GLUU_PERSISTENCE_TYPE", "couchbase")
 GLUU_PERSISTENCE_LDAP_MAPPING = os.environ.get("GLUU_PERSISTENCE_LDAP_MAPPING", "default")
 GLUU_COUCHBASE_URL = os.environ.get("GLUU_COUCHBASE_URL", "localhost")
-
-manager = get_manager()
+GLUU_LDAP_URL = os.environ.get("GLUU_LDAP_URL", "localhost:1636")
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("entrypoint")
@@ -41,38 +42,6 @@ def get_key_from(dn):
 
     # the actual key
     return '_'.join(dns) or "_"
-
-
-def configure_couchbase(cbm):
-    logger.info("Initializing Couchbase Node")
-    req = cbm.initialize_node()
-    if not req.ok:
-        logger.warn("Failed to initilize Couchbase Node, reason={}".format(req.text))
-
-    logger.info("Renaming Couchbase Node")
-    req = cbm.rename_node()
-    if not req.ok:
-        logger.warn("Failed to rename Couchbase Node, reason={}".format(req.text))
-
-    logger.info("Setting Couchbase index storage mode")
-    req = cbm.set_index_storage_mode()
-    if not req.ok:
-        logger.warn("Failed to set Couchbase index storage mode; reason={}".format(req.text))
-
-    logger.info("Setting Couchbase indexer memory quota")
-    req = cbm.set_index_memory_quta()
-    if not req.ok:
-        logger.warn("Failed to set Couchbase indexer memory quota; reason={}".format(req.text))
-
-    logger.info("Setting up Couchbase Services")
-    req = cbm.setup_services()
-    if not req.ok:
-        logger.warn("Failed to setup Couchbase services; reason={}".format(req.text))
-
-    logger.info("Setting Couchbase Admin password")
-    req = cbm.set_admin_password()
-    if not req.ok:
-        logger.warn("Failed to set Couchbase admin password; reason={}".format(req.text))
 
 
 def get_bucket_mappings():
@@ -103,22 +72,17 @@ def get_bucket_mappings():
             ],
             "mem_alloc": [0.25, 500],
         },
-        "cache": {
-            "bucket": "gluu_cache",
-            "files": [],
-            "mem_alloc": [0.15, 400],
+        "site": {
+            "bucket": "gluu_site",
+            "files": [
+                "o_site.ldif",
+            ],
+            "mem_alloc": [0.05, 100],
         },
         "statistic": {
             "bucket": "gluu_statistic",
             "files": [
                 "o_metric.ldif",
-            ],
-            "mem_alloc": [0.05, 100],
-        },
-        "site": {
-            "bucket": "gluu_site",
-            "files": [
-                "o_site.ldif",
             ],
             "mem_alloc": [0.05, 100],
         },
@@ -143,6 +107,11 @@ def get_bucket_mappings():
             ],
             "mem_alloc": [0.05, 100],
         },
+        "cache": {
+            "bucket": "gluu_cache",
+            "files": [],
+            "mem_alloc": [0.15, 400],
+        },
     })
 
     if GLUU_PERSISTENCE_TYPE != "couchbase":
@@ -150,7 +119,6 @@ def get_bucket_mappings():
             name: mapping for name, mapping in bucket_mappings.iteritems()
             if name != GLUU_PERSISTENCE_LDAP_MAPPING
         })
-
     return bucket_mappings
 
 
@@ -169,87 +137,6 @@ def calculate_bucket_memory(name, bucket_mappings, server_mem):
     # else:
     #     calc_size = max(size, min_bucket_mem)
     return max(calc_size, min_bucket_mem)
-
-
-def create_buckets(cbm, bucket_mappings, bucket_type="couchbase"):
-    sys_info = cbm.get_system_info()
-    # NOTE: the RAM has been taken by index memory (256M)
-    total_memsize = sys_info["memoryQuota"] - 256
-
-    logger.info("Memory size for Couchbase buckets was determined as {} MB".format(total_memsize))
-
-    if GLUU_PERSISTENCE_TYPE == "hybrid" and GLUU_PERSISTENCE_LDAP_MAPPING == "default":
-        # always create `gluu` bucket
-        memsize = 100
-        total_memsize -= memsize
-
-        logger.info("Creating bucket {0} with type {1} and RAM size {2}".format("gluu", bucket_type, memsize))
-        req = cbm.add_bucket("gluu", memsize, bucket_type)
-        if not req.ok:
-            logger.warn("Failed to create bucket {}; reason={}".format("gluu", req.text))
-
-    req = cbm.get_buckets()
-    if req.ok:
-        remote_buckets = tuple([bckt["name"] for bckt in req.json()])
-    else:
-        remote_buckets = tuple([])
-
-    for name, mapping in bucket_mappings.iteritems():
-        if mapping["bucket"] in remote_buckets:
-            continue
-
-        memsize = calculate_bucket_memory(name, bucket_mappings, total_memsize)
-
-        logger.info("Creating bucket {0} with type {1} and RAM size {2}".format(mapping["bucket"], bucket_type, memsize))
-        req = cbm.add_bucket(mapping["bucket"], memsize, bucket_type)
-        if not req.ok:
-            logger.warn("Failed to create bucket {}; reason={}".format(mapping["bucket"], req.text))
-
-
-def create_indexes(cbm, bucket_mappings):
-    buckets = [mapping["bucket"] for _, mapping in bucket_mappings.iteritems()]
-
-    with open("/app/static/index.json") as f:
-        indexes = json.loads(f.read())
-
-    for bucket in buckets:
-        if bucket not in indexes:
-            continue
-
-        query_file = "/app/tmp/index_{}.n1ql".format(bucket)
-
-        logger.info("Running Couchbase index creation for {} bucket (if not exist)".format(bucket))
-
-        with open(query_file, "w") as f:
-            f.write('CREATE PRIMARY INDEX def_primary on `%s` USING GSI WITH {"defer_build":true};\n' % (bucket))
-
-            index_list = indexes[bucket]
-            if "dn" not in index_list:
-                index_list.insert(0, "dn")
-
-            index_names = ["def_primary"]
-            for index in index_list:
-                index_name = "def_{0}_{1}".format(bucket, index)
-                f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket, index))
-                index_names.append(index_name)
-
-            f.write('BUILD INDEX ON `%s` (%s) USING GSI;\n' % (bucket, ', '.join(index_names)))
-
-        # exec query
-        with open(query_file) as f:
-            for line in f:
-                query = line.strip()
-                if not query:
-                    continue
-                req = cbm.exec_query(query)
-                if not req.ok:
-                    # the following code should be ignored
-                    # - 4300: index already exists
-                    # - 5000: index already built
-                    error = req.json()["errors"][0]
-                    if error["code"] in (4300, 5000):
-                        continue
-                    logger.warn("Failed to execute query, reason={}".format(error["msg"]))
 
 
 def prepare_list_attrs():
@@ -301,46 +188,6 @@ def transform_entry(entry, list_attrs):
     return entry
 
 
-def import_ldif(cbm, bucket_mappings):
-    ctx = prepare_template_ctx()
-    list_attrs = prepare_list_attrs()
-
-    for _, mapping in bucket_mappings.iteritems():
-        for file_ in mapping["files"]:
-            src = "/app/templates/ldif/{}".format(file_)
-            dst = "/app/tmp/{}".format(file_)
-            render_ldif(src, dst, ctx)
-            parser = LDIFParser(open(dst))
-
-            query_file = "/app/tmp/{}.n1ql".format(file_)
-
-            with open(query_file, "a+") as f:
-                for dn, entry in parser.parse():
-                    if len(entry) <= 2:
-                        continue
-
-                    key = get_key_from(dn)
-                    entry["dn"] = [dn]
-                    entry = transform_entry(entry, list_attrs)
-                    data = json.dumps(entry)
-                    # using INSERT will cause duplication error,
-                    # but the data is left intact
-                    query = 'INSERT INTO `%s` (KEY, VALUE) VALUES ("%s", %s);\n' % (mapping["bucket"], key, data)
-                    f.write(query)
-
-            # exec query
-            logger.info("Importing {} file into {} bucket (if needed)".format(file_, mapping["bucket"]))
-            with open(query_file) as f:
-                for line in f:
-                    query = line.strip()
-                    if not query:
-                        continue
-
-                    req = cbm.exec_query(query)
-                    if not req.ok:
-                        logger.warn("Failed to execute query, reason={}".format(req.json()))
-
-
 def render_ldif(src, dst, ctx):
     with open(src) as f:
         txt = f.read()
@@ -349,7 +196,7 @@ def render_ldif(src, dst, ctx):
         f.write(safe_render(txt, ctx))
 
 
-def prepare_template_ctx():
+def prepare_template_ctx(manager):
     passport_oxtrust_config = '''
     "passportUmaClientId":"%(passport_rs_client_id)s",
     "passportUmaClientKeyId":"",
@@ -370,7 +217,7 @@ def prepare_template_ctx():
         'redis_url': GLUU_REDIS_URL,
         'redis_type': GLUU_REDIS_TYPE,
         'memcached_url': GLUU_MEMCACHED_URL,
-        'ldap_hostname': manager.config.get('ldap_init_host', ""),
+        'ldap_hostname': manager.config.get('ldap_init_host', "localhost"),
         'ldaps_port': manager.config.get('ldap_init_port', 1636),
         'ldap_binddn': manager.config.get('ldap_binddn'),
         'encoded_ox_ldap_pw': manager.secret.get('encoded_ox_ldap_pw'),
@@ -472,8 +319,8 @@ def prepare_template_ctx():
     return ctx
 
 
-def oxtrust_config():
-    ctx = prepare_template_ctx()
+def oxtrust_config(manager):
+    ctx = prepare_template_ctx(manager)
 
     oxtrust_template_base = '/app/templates/oxtrust'
 
@@ -493,65 +340,333 @@ def oxtrust_config():
             ctx_manager.set(key, generate_base64_contents(fp.read() % ctx))
 
 
-def import_cert(cbm, user, password):
-    logger.info("Updating certificates")
-
-    txt = manager.secret.get("couchbase_cluster_cert")
-    base_url = "https://{}:18091".format(GLUU_COUCHBASE_URL)
-
-    with requests.Session() as session:
-        session.auth = (user, password)
-        session.verify = False
-
-        req = session.post(
-            "{}/controller/uploadClusterCA".format(base_url),
-            headers={"Content-Type": "application/octet-stream"},
-            data=txt,
+class CouchbaseBackend(object):
+    def __init__(self, manager):
+        hostname = GLUU_COUCHBASE_URL
+        user = manager.config.get("couchbase_server_user")
+        password = decode_text(
+            manager.secret.get("encoded_couchbase_server_pw"),
+            manager.secret.get("encoded_salt"),
         )
+        self.client = CBM(hostname, user, password)
+        self.manager = manager
+
+    def configure_couchbase(self):
+        logger.info("Initializing Couchbase Node")
+        req = self.client.initialize_node()
         if not req.ok:
-            logger.warn("Unable to upload cluster cert; reason={}".format(req.text))
+            logger.warn("Failed to initilize Couchbase Node, reason={}".format(req.text))
+
+        logger.info("Renaming Couchbase Node")
+        req = self.client.rename_node()
+        if not req.ok:
+            logger.warn("Failed to rename Couchbase Node, reason={}".format(req.text))
+
+        logger.info("Setting Couchbase index storage mode")
+        req = self.client.set_index_storage_mode()
+        if not req.ok:
+            logger.warn("Failed to set Couchbase index storage mode; reason={}".format(req.text))
+
+        logger.info("Setting Couchbase indexer memory quota")
+        req = self.client.set_index_memory_quta()
+        if not req.ok:
+            logger.warn("Failed to set Couchbase indexer memory quota; reason={}".format(req.text))
+
+        logger.info("Setting up Couchbase Services")
+        req = self.client.setup_services()
+        if not req.ok:
+            logger.warn("Failed to setup Couchbase services; reason={}".format(req.text))
+
+        logger.info("Setting Couchbase Admin password")
+        req = self.client.set_admin_password()
+        if not req.ok:
+            logger.warn("Failed to set Couchbase admin password; reason={}".format(req.text))
+
+    def import_cert(self):
+        logger.info("Updating certificates")
+
+        txt = self.manager.secret.get("couchbase_cluster_cert")
+        base_url = "https://{}:18091".format(GLUU_COUCHBASE_URL)
+
+        with requests.Session() as session:
+            session.auth = (self.client.auth.username, self.client.auth.password)
+            session.verify = False
+
+            req = session.post(
+                "{}/controller/uploadClusterCA".format(base_url),
+                headers={"Content-Type": "application/octet-stream"},
+                data=txt,
+            )
+            if not req.ok:
+                logger.warn("Unable to upload cluster cert; reason={}".format(req.text))
+
+            time.sleep(5)
+            req = session.post("{}/node/controller/reloadCertificate".format(base_url))
+            if not req.ok:
+                logger.warn("Unable to reload node cert; reason={}".format(req.text))
+
+            # req = session.post(
+            #     "{}/settings/clientCertAuth".format(base_url),
+            #     json={"state": "enable", "prefixes": [
+            #         {"path": "subject.cn", "prefix": "", "delimiter": ""},
+            #     ]},
+            # )
+            # if not req.ok:
+            #     logger.warn("Unable to set client cert auth; reason={}".format(req.text))
+
+    def create_buckets(self, bucket_mappings, bucket_type="couchbase"):
+        sys_info = self.client.get_system_info()
+        # NOTE: the RAM has been taken by index memory (256M)
+        total_memsize = sys_info["memoryQuota"] - 256
+
+        logger.info("Memory size for Couchbase buckets was determined as {} MB".format(total_memsize))
+
+        if GLUU_PERSISTENCE_TYPE == "hybrid" and GLUU_PERSISTENCE_LDAP_MAPPING == "default":
+            # always create `gluu` bucket
+            memsize = 100
+            total_memsize -= memsize
+
+            logger.info("Creating bucket {0} with type {1} and RAM size {2}".format("gluu", bucket_type, memsize))
+            req = self.client.add_bucket("gluu", memsize, bucket_type)
+            if not req.ok:
+                logger.warn("Failed to create bucket {}; reason={}".format("gluu", req.text))
+
+        req = self.client.get_buckets()
+        if req.ok:
+            remote_buckets = tuple([bckt["name"] for bckt in req.json()])
+        else:
+            remote_buckets = tuple([])
+
+        for name, mapping in bucket_mappings.iteritems():
+            if mapping["bucket"] in remote_buckets:
+                continue
+
+            memsize = calculate_bucket_memory(name, bucket_mappings, total_memsize)
+
+            logger.info("Creating bucket {0} with type {1} and RAM size {2}".format(mapping["bucket"], bucket_type, memsize))
+            req = self.client.add_bucket(mapping["bucket"], memsize, bucket_type)
+            if not req.ok:
+                logger.warn("Failed to create bucket {}; reason={}".format(mapping["bucket"], req.text))
+
+    def create_indexes(self, bucket_mappings):
+        buckets = [mapping["bucket"] for _, mapping in bucket_mappings.iteritems()]
+
+        with open("/app/static/index.json") as f:
+            indexes = json.loads(f.read())
+
+        for bucket in buckets:
+            if bucket not in indexes:
+                continue
+
+            query_file = "/app/tmp/index_{}.n1ql".format(bucket)
+
+            logger.info("Running Couchbase index creation for {} bucket (if not exist)".format(bucket))
+
+            with open(query_file, "w") as f:
+                f.write('CREATE PRIMARY INDEX def_primary on `%s` USING GSI WITH {"defer_build":true};\n' % (bucket))
+
+                index_list = indexes[bucket]
+                if "dn" not in index_list:
+                    index_list.insert(0, "dn")
+
+                index_names = ["def_primary"]
+                for index in index_list:
+                    index_name = "def_{0}_{1}".format(bucket, index)
+                    f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket, index))
+                    index_names.append(index_name)
+
+                f.write('BUILD INDEX ON `%s` (%s) USING GSI;\n' % (bucket, ', '.join(index_names)))
+
+            # exec query
+            with open(query_file) as f:
+                for line in f:
+                    query = line.strip()
+                    if not query:
+                        continue
+                    req = self.client.exec_query(query)
+                    if not req.ok:
+                        # the following code should be ignored
+                        # - 4300: index already exists
+                        # - 5000: index already built
+                        error = req.json()["errors"][0]
+                        if error["code"] in (4300, 5000):
+                            continue
+                        logger.warn("Failed to execute query, reason={}".format(error["msg"]))
+
+    def import_ldif(self, bucket_mappings):
+        ctx = prepare_template_ctx()
+        list_attrs = prepare_list_attrs()
+
+        for _, mapping in bucket_mappings.iteritems():
+            for file_ in mapping["files"]:
+                src = "/app/templates/ldif/{}".format(file_)
+                dst = "/app/tmp/{}".format(file_)
+                render_ldif(src, dst, ctx)
+                parser = LDIFParser(open(dst))
+
+                query_file = "/app/tmp/{}.n1ql".format(file_)
+
+                with open(query_file, "a+") as f:
+                    for dn, entry in parser.parse():
+                        if len(entry) <= 2:
+                            continue
+
+                        key = get_key_from(dn)
+                        entry["dn"] = [dn]
+                        entry = transform_entry(entry, list_attrs)
+                        data = json.dumps(entry)
+                        # using INSERT will cause duplication error,
+                        # but the data is left intact
+                        query = 'INSERT INTO `%s` (KEY, VALUE) VALUES ("%s", %s);\n' % (mapping["bucket"], key, data)
+                        f.write(query)
+
+                # exec query
+                logger.info("Importing {} file into {} bucket (if needed)".format(file_, mapping["bucket"]))
+                with open(query_file) as f:
+                    for line in f:
+                        query = line.strip()
+                        if not query:
+                            continue
+
+                        req = self.client.exec_query(query)
+                        if not req.ok:
+                            logger.warn("Failed to execute query, reason={}".format(req.json()))
+
+    def initialize(self):
+        bucket_mappings = get_bucket_mappings()
+
+        self.configure_couchbase()
 
         time.sleep(5)
-        req = session.post("{}/node/controller/reloadCertificate".format(base_url))
-        if not req.ok:
-            logger.warn("Unable to reload node cert; reason={}".format(req.text))
+        self.import_cert()
 
-        # req = session.post(
-        #     "{}/settings/clientCertAuth".format(base_url),
-        #     json={"state": "enable", "prefixes": [
-        #         {"path": "subject.cn", "prefix": "", "delimiter": ""},
-        #     ]},
-        # )
-        # if not req.ok:
-        #     logger.warn("Unable to set client cert auth; reason={}".format(req.text))
+        time.sleep(5)
+        self.create_buckets(bucket_mappings)
+
+        time.sleep(5)
+        self.create_indexes(bucket_mappings)
+
+        time.sleep(5)
+        oxtrust_config(self.manager)
+
+        time.sleep(5)
+        self.import_ldif(bucket_mappings)
+
+
+class LDAPBackend(object):
+    def __init__(self, manager):
+        host = GLUU_LDAP_URL
+        user = manager.config.get("ldap_binddn")
+        password = decode_text(
+            manager.secret.get("encoded_ox_ldap_pw"),
+            manager.secret.get("encoded_salt"),
+        )
+
+        server = Server(host, port=1636, use_ssl=True)
+        self.conn = Connection(server, user, password)
+        self.manager = manager
+
+    def import_ldif(self):
+        ldif_mappings = {
+            "default": [
+                "base.ldif",
+                "attributes.ldif",
+                "scopes.ldif",
+                "scripts.ldif",
+                "configuration.ldif",
+                "scim.ldif",
+                "oxidp.ldif",
+                "oxtrust_api.ldif",
+                "passport.ldif",
+                "oxpassport-config.ldif",
+                "gluu_radius_base.ldif",
+                "gluu_radius_server.ldif",
+            ],
+            "user": [
+                "people.ldif",
+                "groups.ldif",
+            ],
+            "site": [
+                "o_site.ldif",
+            ],
+            "statistic": [
+                "o_metric.ldif",
+            ],
+            "authorization": [],
+            "token": [],
+            "client": [
+                "clients.ldif",
+                "oxtrust_api_clients.ldif",
+                "scim_clients.ldif",
+                "gluu_radius_clients.ldif",
+                "passport_clients.ldif",
+            ],
+        }
+
+        # hybrid means only a subsets of ldif are needed
+        if GLUU_PERSISTENCE_TYPE == "hybrid":
+            mapping = GLUU_PERSISTENCE_LDAP_MAPPING
+            ldif_mappings = {mapping: ldif_mappings[mapping]}
+
+            # these mappings require `base.ldif`
+            opt_mappings = ("user", "authorization", "token", "client")
+
+            # `user` mapping requires `o=gluu` which available in `base.ldif`
+            if mapping in opt_mappings and "base.ldif" not in ldif_mappings[mapping]:
+                ldif_mappings[mapping].insert(0, "base.ldif")
+
+        ctx = prepare_template_ctx(self.manager)
+
+        for _, files in ldif_mappings.iteritems():
+            for file_ in files:
+                logger.info("Importing {} file".format(file_))
+                src = "/app/templates/ldif/{}".format(file_)
+                dst = "/app/tmp/{}".format(file_)
+                render_ldif(src, dst, ctx)
+
+                parser = LDIFParser(open(dst))
+                for dn, entry in parser.parse():
+                    with self.conn as conn:
+                        conn.add(dn, attributes=entry)
+                        # show errors if result code is not in the following range
+                        # - 0: success
+                        # - 68: duplicate DN
+                        if conn.result["result"] not in (0, 68):
+                            logger.warn("Unable to add entry with DN={0}; reason={1}".format(
+                                dn, conn.result["message"],
+                            ))
+
+    def initialize(self):
+        oxtrust_config(self.manager)
+        self.import_ldif()
+
+
+class HybridBackend(object):
+    def __init__(self, manager):
+        self.ldap_backend = LDAPBackend(manager)
+        self.couchbase_backend = CouchbaseBackend(manager)
+
+    def initialize(self):
+        self.ldap_backend.initialize()
+        self.couchbase_backend.initialize()
 
 
 def main():
-    hostname = GLUU_COUCHBASE_URL
-    user = manager.config.get("couchbase_server_user")
-    password = decode_text(
-        manager.secret.get("encoded_couchbase_server_pw"),
-        manager.secret.get("encoded_salt"),
-    )
-    cbm = CBM(hostname, user, password)
+    manager = get_manager()
 
-    configure_couchbase(cbm)
+    backend_classes = {
+        "ldap": LDAPBackend,
+        "couchbase": CouchbaseBackend,
+        "hybrid": HybridBackend,
+    }
 
-    time.sleep(5)
-    import_cert(cbm, user, password)
+    # initialize the backend
+    backend_cls = backend_classes.get(GLUU_PERSISTENCE_TYPE)
+    if not backend_cls:
+        raise ValueError("unsupported backend")
 
-    time.sleep(5)
-    bucket_mappings = get_bucket_mappings()
-    create_buckets(cbm, bucket_mappings)
-
-    time.sleep(5)
-    create_indexes(cbm, bucket_mappings)
-
-    time.sleep(5)
-    oxtrust_config()
-
-    time.sleep(5)
-    import_ldif(cbm, bucket_mappings)
+    backend = backend_cls(manager)
+    backend.initialize()
 
 
 if __name__ == "__main__":

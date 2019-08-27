@@ -12,10 +12,10 @@ LICENSE_ACK
 
 # check persistence type
 case "${GLUU_PERSISTENCE_TYPE}" in
-    couchbase|hybrid)
+    ldap|couchbase|hybrid)
         ;;
     *)
-        echo "unsupported GLUU_PERSISTENCE_TYPE value; please choose 'couchbase' or 'hybrid'"
+        echo "unsupported GLUU_PERSISTENCE_TYPE value; please choose 'ldap', 'couchbase', or 'hybrid'"
         exit 1
         ;;
 esac
@@ -36,8 +36,8 @@ fi
 deps="config,secret"
 
 if [ "${GLUU_PERSISTENCE_TYPE}" = "hybrid" ]; then
-    deps="${deps},couchbase"
-    conn_only="couchbase"
+    deps="${deps},ldap,couchbase"
+    conn_only="ldap,couchbase"
 else
     deps="${deps},${GLUU_PERSISTENCE_TYPE}"
     conn_only="${GLUU_PERSISTENCE_TYPE}"
