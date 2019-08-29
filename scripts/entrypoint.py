@@ -6,8 +6,11 @@ import time
 from collections import OrderedDict
 
 import requests
+from ldap3 import BASE
 from ldap3 import Connection
 from ldap3 import Server
+from ldap3.core.exceptions import LDAPSessionTerminatedByServerError
+from ldap3.core.exceptions import LDAPSocketOpenError
 from ldif3 import LDIFParser
 
 from pygluu.containerlib import get_manager
@@ -566,6 +569,43 @@ class LDAPBackend(object):
         self.conn = Connection(server, user, password)
         self.manager = manager
 
+    def check_indexes(self, mapping):
+        if mapping == "site":
+            index_name = "oxScriptType"
+            backend = "site"
+        # elif mapping == "statistic":
+        #     index_name = "oxMetricType"
+        #     backend = "metric"
+        else:
+            index_name = "oxAuthUserId"
+            backend = "userRoot"
+
+        dn = "ds-cfg-attribute={},cn=Index,ds-cfg-backend-id={}," \
+             "cn=Backends,cn=config".format(index_name, backend)
+
+        max_wait_time = 300
+        sleep_duration = 5
+
+        for i in range(0, max_wait_time, sleep_duration):
+            try:
+                with self.conn as conn:
+                    conn.search(
+                        search_base=dn,
+                        search_filter="(objectClass=*)",
+                        search_scope=BASE,
+                        attributes=["1.1"],
+                        size_limit=1,
+                    )
+                    if conn.result["description"] == "success":
+                        return
+                    reason = conn.result["message"]
+            except (LDAPSessionTerminatedByServerError, LDAPSocketOpenError) as exc:
+                reason = exc
+
+            logger.warn("Index is not ready; reason={}; "
+                        "retrying in {} seconds".format(reason, sleep_duration))
+            time.sleep(sleep_duration)
+
     def import_ldif(self):
         ldif_mappings = {
             "default": [
@@ -617,7 +657,9 @@ class LDAPBackend(object):
 
         ctx = prepare_template_ctx(self.manager)
 
-        for _, files in ldif_mappings.iteritems():
+        for mapping, files in ldif_mappings.iteritems():
+            self.check_indexes(mapping)
+
             for file_ in files:
                 logger.info("Importing {} file".format(file_))
                 src = "/app/templates/ldif/{}".format(file_)
@@ -626,15 +668,25 @@ class LDAPBackend(object):
 
                 parser = LDIFParser(open(dst))
                 for dn, entry in parser.parse():
-                    with self.conn as conn:
-                        conn.add(dn, attributes=entry)
-                        # show errors if result code is not in the following range
-                        # - 0: success
-                        # - 68: duplicate DN
-                        if conn.result["result"] not in (0, 68):
-                            logger.warn("Unable to add entry with DN={0}; reason={1}".format(
-                                dn, conn.result["message"],
-                            ))
+                    self.add_entry(dn, entry)
+
+    def add_entry(self, dn, attrs):
+        max_wait_time = 300
+        sleep_duration = 5
+
+        for i in range(0, max_wait_time, sleep_duration):
+            try:
+                with self.conn as conn:
+                    conn.add(dn, attributes=attrs)
+                    if conn.result["result"] != 0:
+                        logger.warn("Unable to add entry with DN {0}; reason={1}".format(
+                            dn, conn.result["message"],
+                        ))
+                    return
+            except (LDAPSessionTerminatedByServerError, LDAPSocketOpenError) as exc:
+                logger.warn("Unable to add entry with DN {0}; reason={1}; "
+                            "retrying in {2} seconds".format(dn, exc, sleep_duration))
+            time.sleep(sleep_duration)
 
     def initialize(self):
         oxtrust_config(self.manager)
