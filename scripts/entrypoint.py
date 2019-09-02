@@ -64,6 +64,12 @@ def get_bucket_mappings():
                 "oxpassport-config.ldif",
                 "gluu_radius_base.ldif",
                 "gluu_radius_server.ldif",
+                "clients.ldif",
+                "oxtrust_api_clients.ldif",
+                "scim_clients.ldif",
+                "o_metric.ldif",
+                "gluu_radius_clients.ldif",
+                "passport_clients.ldif",
             ],
             "mem_alloc": [0.05, 100],
         },
@@ -73,7 +79,7 @@ def get_bucket_mappings():
                 "people.ldif",
                 "groups.ldif",
             ],
-            "mem_alloc": [0.25, 500],
+            "mem_alloc": [0.25, 300],
         },
         "site": {
             "bucket": "gluu_site",
@@ -82,38 +88,15 @@ def get_bucket_mappings():
             ],
             "mem_alloc": [0.05, 100],
         },
-        "statistic": {
-            "bucket": "gluu_statistic",
-            "files": [
-                "o_metric.ldif",
-            ],
-            "mem_alloc": [0.05, 100],
-        },
-        "authorization": {
-            "bucket": "gluu_authorization",
-            "files": [],
-            "mem_alloc": [0.15, 400],
-        },
         "token": {
             "bucket": "gluu_token",
             "files": [],
-            "mem_alloc": [0.25, 500],
-        },
-        "client": {
-            "bucket": "gluu_client",
-            "files": [
-                "clients.ldif",
-                "oxtrust_api_clients.ldif",
-                "scim_clients.ldif",
-                "gluu_radius_clients.ldif",
-                "passport_clients.ldif",
-            ],
-            "mem_alloc": [0.05, 100],
+            "mem_alloc": [0.25, 300],
         },
         "cache": {
             "bucket": "gluu_cache",
             "files": [],
-            "mem_alloc": [0.15, 400],
+            "mem_alloc": [0.15, 300],
         },
     })
 
@@ -318,6 +301,10 @@ def prepare_template_ctx(manager):
         "super_gluu_ro_script": manager.config.get("super_gluu_ro_script"),
         "enableRadiusScripts": "false",
         "gluu_ro_client_base64_jwks": manager.secret.get("gluu_ro_client_base64_jwks"),
+
+        "gluuPassportEnabled": "false",
+        "gluuRadiusEnabled": "false",
+        "gluuSamlEnabled": "false",
     }
     return ctx
 
@@ -454,7 +441,7 @@ class CouchbaseBackend(object):
     def create_indexes(self, bucket_mappings):
         buckets = [mapping["bucket"] for _, mapping in bucket_mappings.iteritems()]
 
-        with open("/app/static/index.json") as f:
+        with open("/app/static/couchbase_index.json") as f:
             indexes = json.loads(f.read())
 
         for bucket in buckets:
@@ -577,7 +564,7 @@ class LDAPBackend(object):
         #     index_name = "oxMetricType"
         #     backend = "metric"
         else:
-            index_name = "oxAuthUserId"
+            index_name = "del"
             backend = "userRoot"
 
         dn = "ds-cfg-attribute={},cn=Index,ds-cfg-backend-id={}," \
@@ -621,6 +608,12 @@ class LDAPBackend(object):
                 "oxpassport-config.ldif",
                 "gluu_radius_base.ldif",
                 "gluu_radius_server.ldif",
+                "clients.ldif",
+                "oxtrust_api_clients.ldif",
+                "scim_clients.ldif",
+                "o_metric.ldif",
+                "gluu_radius_clients.ldif",
+                "passport_clients.ldif",
             ],
             "user": [
                 "people.ldif",
@@ -629,18 +622,8 @@ class LDAPBackend(object):
             "site": [
                 "o_site.ldif",
             ],
-            "statistic": [
-                "o_metric.ldif",
-            ],
-            "authorization": [],
+            "cache": [],
             "token": [],
-            "client": [
-                "clients.ldif",
-                "oxtrust_api_clients.ldif",
-                "scim_clients.ldif",
-                "gluu_radius_clients.ldif",
-                "passport_clients.ldif",
-            ],
         }
 
         # hybrid means only a subsets of ldif are needed
@@ -649,7 +632,7 @@ class LDAPBackend(object):
             ldif_mappings = {mapping: ldif_mappings[mapping]}
 
             # these mappings require `base.ldif`
-            opt_mappings = ("user", "authorization", "token", "client")
+            opt_mappings = ("user", "token",)
 
             # `user` mapping requires `o=gluu` which available in `base.ldif`
             if mapping in opt_mappings and "base.ldif" not in ldif_mappings[mapping]:
