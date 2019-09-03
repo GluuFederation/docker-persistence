@@ -166,7 +166,7 @@ def render_ldif(src, dst, ctx):
         f.write(safe_render(txt, ctx))
 
 
-def prepare_template_ctx(manager):
+def get_base_ctx(manager):
     passport_oxtrust_config = '''
     "passportUmaClientId":"%(passport_rs_client_id)s",
     "passportUmaClientKeyId":"",
@@ -198,15 +198,15 @@ def prepare_template_ctx(manager):
         'hostname': manager.config.get('hostname'),
         'idp_client_id': manager.config.get('idp_client_id'),
         'idpClient_encoded_pw': manager.secret.get('idpClient_encoded_pw'),
-        'oxauth_config_base64': manager.secret.get('oxauth_config_base64'),
-        'oxauth_static_conf_base64': manager.config.get('oxauth_static_conf_base64'),
+        # 'oxauth_config_base64': manager.secret.get('oxauth_config_base64'),
+        # 'oxauth_static_conf_base64': manager.config.get('oxauth_static_conf_base64'),
         'oxauth_openid_key_base64': manager.secret.get('oxauth_openid_key_base64'),
-        'oxauth_error_base64': manager.config.get('oxauth_error_base64'),
-        'oxtrust_config_base64': manager.secret.get('oxtrust_config_base64'),
-        'oxtrust_cache_refresh_base64': manager.secret.get('oxtrust_cache_refresh_base64'),
-        'oxtrust_import_person_base64': manager.config.get('oxtrust_import_person_base64'),
-        'oxidp_config_base64': manager.secret.get('oxidp_config_base64'),
-        'passport_central_config_base64': manager.secret.get("passport_central_config_base64"),
+        # 'oxauth_error_base64': manager.config.get('oxauth_error_base64'),
+        # 'oxtrust_config_base64': manager.secret.get('oxtrust_config_base64'),
+        # 'oxtrust_cache_refresh_base64': manager.secret.get('oxtrust_cache_refresh_base64'),
+        # 'oxtrust_import_person_base64': manager.config.get('oxtrust_import_person_base64'),
+        # 'oxidp_config_base64': manager.secret.get('oxidp_config_base64'),
+        # 'passport_central_config_base64': manager.secret.get("passport_central_config_base64"),
         'passport_rs_client_id': manager.config.get('passport_rs_client_id'),
         'passport_rs_client_base64_jwks': manager.secret.get('passport_rs_client_base64_jwks'),
         'passport_rp_client_id': manager.config.get('passport_rp_client_id'),
@@ -222,41 +222,6 @@ def prepare_template_ctx(manager):
         'passport_rp_ii_client_id': manager.config.get("passport_rp_ii_client_id"),
         'api_rs_client_base64_jwks': manager.secret.get("api_rs_client_base64_jwks"),
         'api_rp_client_base64_jwks': manager.secret.get("api_rp_client_base64_jwks"),
-
-        # scripts.ldif
-        "person_authentication_usercertexternalauthenticator": manager.config.get("person_authentication_usercertexternalauthenticator"),
-        "person_authentication_passportexternalauthenticator": manager.config.get("person_authentication_passportexternalauthenticator"),
-        "dynamic_scope_dynamic_permission": manager.config.get("dynamic_scope_dynamic_permission"),
-        "id_generator_samplescript": manager.config.get("id_generator_samplescript"),
-        "dynamic_scope_org_name": manager.config.get("dynamic_scope_org_name"),
-        "dynamic_scope_work_phone": manager.config.get("dynamic_scope_work_phone"),
-        "cache_refresh_samplescript": manager.config.get("cache_refresh_samplescript"),
-        "person_authentication_yubicloudexternalauthenticator": manager.config.get("person_authentication_yubicloudexternalauthenticator"),
-        "uma_rpt_policy_uma_rpt_policy": manager.config.get("uma_rpt_policy_uma_rpt_policy"),
-        "uma_claims_gathering_uma_claims_gathering": manager.config.get("uma_claims_gathering_uma_claims_gathering"),
-        "person_authentication_basiclockaccountexternalauthenticator": manager.config.get("person_authentication_basiclockaccountexternalauthenticator"),
-        "person_authentication_uafexternalauthenticator": manager.config.get("person_authentication_uafexternalauthenticator"),
-        "person_authentication_otpexternalauthenticator": manager.config.get("person_authentication_otpexternalauthenticator"),
-        "person_authentication_duoexternalauthenticator": manager.config.get("person_authentication_duoexternalauthenticator"),
-        "update_user_samplescript": manager.config.get("update_user_samplescript"),
-        "user_registration_samplescript": manager.config.get("user_registration_samplescript"),
-        "user_registration_confirmregistrationsamplescript": manager.config.get("user_registration_confirmregistrationsamplescript"),
-        "person_authentication_googleplusexternalauthenticator": manager.config.get("person_authentication_googleplusexternalauthenticator"),
-        "person_authentication_u2fexternalauthenticator": manager.config.get("person_authentication_u2fexternalauthenticator"),
-        "person_authentication_supergluuexternalauthenticator": manager.config.get("person_authentication_supergluuexternalauthenticator"),
-        "person_authentication_basicexternalauthenticator": manager.config.get("person_authentication_basicexternalauthenticator"),
-        "scim_samplescript": manager.config.get("scim_samplescript"),
-        "person_authentication_samlexternalauthenticator": manager.config.get("person_authentication_samlexternalauthenticator"),
-        "client_registration_samplescript": manager.config.get("client_registration_samplescript"),
-        "person_authentication_twilio2fa": manager.config.get("person_authentication_twilio2fa"),
-        "application_session_samplescript": manager.config.get("application_session_samplescript"),
-        "uma_rpt_policy_umaclientauthzrptpolicy": manager.config.get("uma_rpt_policy_umaclientauthzrptpolicy"),
-        "person_authentication_samlpassportauthenticator": manager.config.get("person_authentication_samlpassportauthenticator"),
-        "consent_gathering_consentgatheringsample": manager.config.get("consent_gathering_consentgatheringsample"),
-        "person_authentication_thumbsigninexternalauthenticator": manager.config.get("person_authentication_thumbsigninexternalauthenticator"),
-        "resource_owner_password_credentials_resource_owner_password_credentials": manager.config.get("resource_owner_password_credentials_resource_owner_password_credentials"),
-        "person_authentication_fido2externalauthenticator": manager.config.get("person_authentication_fido2externalauthenticator"),
-        "introspection_introspection": manager.config.get("introspection_introspection"),
 
         'admin_email': manager.config.get('admin_email'),
         'shibJksFn': manager.config.get('shibJksFn'),
@@ -289,29 +254,117 @@ def prepare_template_ctx(manager):
         "gluuPassportEnabled": "false",
         "gluuRadiusEnabled": "false",
         "gluuSamlEnabled": "false",
+
+        "pairwiseCalculationKey": manager.secret.get("pairwiseCalculationKey"),
+        "pairwiseCalculationSalt": manager.secret.get("pairwiseCalculationSalt"),
+        "default_openid_jks_dn_name": manager.secret.get("default_openid_jks_dn_name"),
+        "oxauth_openid_jks_fn": manager.config.get("oxauth_openid_jks_fn"),
+        "oxauth_openid_jks_pass": manager.secret.get("oxauth_openid_jks_pass"),
+        "oxauth_legacyIdTokenClaims": manager.config.get("oxauth_legacyIdTokenClaims"),
+        "passportSpTLSCert": manager.config.get("passportSpTLSCert"),
+        "passportSpTLSKey": manager.config.get("passportSpTLSKey"),
+        "oxauth_openidScopeBackwardCompatibility": manager.config.get("oxauth_openidScopeBackwardCompatibility"),
+        "fido2ConfigFolder": manager.config.get("fido2ConfigFolder"),
     }
     return ctx
 
 
-def oxtrust_config(manager):
-    ctx = prepare_template_ctx(manager)
+def merge_extension_ctx(ctx):
+    basedir = "/app/static/extension"
 
-    oxtrust_template_base = '/app/templates/oxtrust'
+    for ext_type in os.listdir(basedir):
+        ext_type_dir = os.path.join(basedir, ext_type)
 
-    key_and_jsonfile_map = {
-        'oxtrust_cache_refresh_base64': 'oxtrust-cache-refresh.json',
-        'oxtrust_config_base64': 'oxtrust-config.json',
-        'oxtrust_import_person_base64': 'oxtrust-import-person.json'
+        for fname in os.listdir(ext_type_dir):
+            filepath = os.path.join(ext_type_dir, fname)
+            ext_name = "{}_{}".format(
+                ext_type, os.path.splitext(fname)[0].lower()
+            )
+
+            with open(filepath) as fd:
+                ctx[ext_name] = generate_base64_contents(fd.read())
+    return ctx
+
+
+def merge_radius_ctx(ctx):
+    basedir = "/app/static/radius"
+    file_mappings = {
+        "super_gluu_ro_session_script": "super_gluu_ro_session.py",
+        "super_gluu_ro_script": "super_gluu_ro.py",
     }
 
-    for key, json_file in key_and_jsonfile_map.iteritems():
-        json_file_path = os.path.join(oxtrust_template_base, json_file)
-        with open(json_file_path, 'r') as fp:
-            if json_file == "oxtrust-import-person.json":
-                ctx_manager = manager.config
-            else:
-                ctx_manager = manager.secret
-            ctx_manager.set(key, generate_base64_contents(fp.read() % ctx))
+    for key, file_ in file_mappings.iteritems():
+        fn = os.path.join(basedir, file_)
+        with open(fn) as f:
+            ctx[key] = generate_base64_contents(f.read())
+    return ctx
+
+
+def merge_oxtrust_ctx(ctx):
+    basedir = '/app/templates/oxtrust'
+    file_mappings = {
+        'oxtrust_cache_refresh_base64': 'oxtrust-cache-refresh.json',
+        'oxtrust_config_base64': 'oxtrust-config.json',
+        'oxtrust_import_person_base64': 'oxtrust-import-person.json',
+    }
+
+    for key, file_ in file_mappings.iteritems():
+        file_path = os.path.join(basedir, file_)
+        with open(file_path) as fp:
+            ctx[key] = generate_base64_contents(fp.read() % ctx)
+    return ctx
+
+
+def merge_oxauth_ctx(ctx):
+    basedir = '/app/templates/oxauth'
+    file_mappings = {
+        'oxauth_config_base64': 'oxauth-config.json',
+        'oxauth_static_conf_base64': 'oxauth-static-conf.json',
+        'oxauth_error_base64': 'oxauth-errors.json',
+    }
+
+    for key, file_ in file_mappings.iteritems():
+        file_path = os.path.join(basedir, file_)
+        with open(file_path) as fp:
+            ctx[key] = generate_base64_contents(fp.read() % ctx)
+    return ctx
+
+
+def merge_oxidp_ctx(ctx):
+    basedir = '/app/templates/oxidp'
+    file_mappings = {
+        'oxidp_config_base64': 'oxidp-config.json',
+    }
+
+    for key, file_ in file_mappings.iteritems():
+        file_path = os.path.join(basedir, file_)
+        with open(file_path) as fp:
+            ctx[key] = generate_base64_contents(fp.read() % ctx)
+    return ctx
+
+
+def merge_passport_ctx(ctx):
+    basedir = '/app/templates/passport'
+    file_mappings = {
+        'passport_central_config_base64': 'passport-central-config.json',
+    }
+
+    for key, file_ in file_mappings.iteritems():
+        file_path = os.path.join(basedir, file_)
+        with open(file_path) as fp:
+            ctx[key] = generate_base64_contents(fp.read() % ctx)
+    return ctx
+
+
+def prepare_template_ctx(manager):
+    ctx = get_base_ctx(manager)
+    ctx = merge_extension_ctx(ctx)
+    ctx = merge_radius_ctx(ctx)
+    ctx = merge_oxauth_ctx(ctx)
+    ctx = merge_oxtrust_ctx(ctx)
+    ctx = merge_oxidp_ctx(ctx)
+    ctx = merge_passport_ctx(ctx)
+    return ctx
 
 
 class CouchbaseBackend(object):
@@ -526,8 +579,8 @@ class CouchbaseBackend(object):
         time.sleep(5)
         self.create_indexes(bucket_mappings)
 
-        time.sleep(5)
-        oxtrust_config(self.manager)
+        # time.sleep(5)
+        # get_oxtrust_ctx()
 
         time.sleep(5)
         self.import_ldif(bucket_mappings)
@@ -662,7 +715,6 @@ class LDAPBackend(object):
             time.sleep(sleep_duration)
 
     def initialize(self):
-        oxtrust_config(self.manager)
         self.import_ldif()
 
 
