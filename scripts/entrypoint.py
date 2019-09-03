@@ -443,15 +443,18 @@ class CouchbaseBackend(object):
 
     def create_buckets(self, bucket_mappings, bucket_type="couchbase"):
         sys_info = self.client.get_system_info()
-        total_mem = (sys_info['storageTotals']['ram']['quotaTotal'] - sys_info['storageTotals']['ram']['quotaUsed']) / (1024 * 1024)
+        ram_info = sys_info["storageTotals"]["ram"]
+
+        total_mem = (ram_info['quotaTotal'] - ram_info['quotaUsed']) / (1024 * 1024)
         # the minimum memory is a sum of required buckets + minimum mem for `gluu` bucket
         min_mem = sum([value["mem_alloc"] for value in bucket_mappings.values()]) + 100
+
+        logger.info("Memory size for Couchbase buckets was determined as {} MB".format(total_mem))
+        logger.info("Minimum memory size for Couchbase buckets was determined as {} MB".format(min_mem))
 
         if total_mem < min_mem:
             logger.error("Available quota on couchbase server is less than {} MB; exiting ...".format(min_mem))
             sys.exit(1)
-
-        logger.info("Memory size for Couchbase buckets was determined as {} MB".format(total_mem))
 
         # always create `gluu` bucket even when `default` mapping stored in LDAP
         if GLUU_PERSISTENCE_TYPE == "hybrid" and GLUU_PERSISTENCE_LDAP_MAPPING == "default":
@@ -472,9 +475,7 @@ class CouchbaseBackend(object):
             if mapping["bucket"] in remote_buckets:
                 continue
 
-            memsize = int(
-                (mapping["mem"] / min_mem) * total_mem
-            )
+            memsize = int((mapping["mem_alloc"] / float(min_mem)) * total_mem)
 
             logger.info("Creating bucket {0} with type {1} and RAM size {2}".format(mapping["bucket"], bucket_type, memsize))
             req = self.client.add_bucket(mapping["bucket"], memsize, bucket_type)
@@ -527,7 +528,7 @@ class CouchbaseBackend(object):
                         logger.warn("Failed to execute query, reason={}".format(error["msg"]))
 
     def import_ldif(self, bucket_mappings):
-        ctx = prepare_template_ctx()
+        ctx = prepare_template_ctx(self.manager)
         list_attrs = prepare_list_attrs()
 
         for _, mapping in bucket_mappings.iteritems():
@@ -548,8 +549,7 @@ class CouchbaseBackend(object):
                         entry["dn"] = [dn]
                         entry = transform_entry(entry, list_attrs)
                         data = json.dumps(entry)
-                        # using INSERT will cause duplication error,
-                        # but the data is left intact
+                        # using INSERT will cause duplication error, but the data is left intact
                         query = 'INSERT INTO `%s` (KEY, VALUE) VALUES ("%s", %s);\n' % (mapping["bucket"], key, data)
                         f.write(query)
 
