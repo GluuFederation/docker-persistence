@@ -2,6 +2,7 @@ import json
 import logging
 import logging.config
 import os
+import sys
 import time
 from collections import OrderedDict
 
@@ -71,7 +72,7 @@ def get_bucket_mappings():
                 "gluu_radius_clients.ldif",
                 "passport_clients.ldif",
             ],
-            "mem_alloc": [0.05, 100],
+            "mem_alloc": 100,
         },
         "user": {
             "bucket": "gluu_user",
@@ -79,24 +80,24 @@ def get_bucket_mappings():
                 "people.ldif",
                 "groups.ldif",
             ],
-            "mem_alloc": [0.25, 300],
+            "mem_alloc": 300,
         },
         "site": {
             "bucket": "gluu_site",
             "files": [
                 "o_site.ldif",
             ],
-            "mem_alloc": [0.05, 100],
+            "mem_alloc": 100,
         },
         "token": {
             "bucket": "gluu_token",
             "files": [],
-            "mem_alloc": [0.25, 300],
+            "mem_alloc": 300,
         },
         "cache": {
             "bucket": "gluu_cache",
             "files": [],
-            "mem_alloc": [0.15, 300],
+            "mem_alloc": 300,
         },
     })
 
@@ -106,23 +107,6 @@ def get_bucket_mappings():
             if name != GLUU_PERSISTENCE_LDAP_MAPPING
         })
     return bucket_mappings
-
-
-def calculate_bucket_memory(name, bucket_mappings, server_mem):
-    min_bucket_mem = 100
-
-    total_ratio = int(
-        sum([v["mem_alloc"][0] for v in bucket_mappings.values()])
-    )
-
-    mem_alloc = bucket_mappings[name]["mem_alloc"]
-    calc_size = int((mem_alloc[0] / total_ratio) * server_mem)
-
-    # if server_mem >= default_server_mem:
-    #     calc_size = max(size, mem_alloc[1])
-    # else:
-    #     calc_size = max(size, min_bucket_mem)
-    return max(calc_size, min_bucket_mem)
 
 
 def prepare_list_attrs():
@@ -406,15 +390,19 @@ class CouchbaseBackend(object):
 
     def create_buckets(self, bucket_mappings, bucket_type="couchbase"):
         sys_info = self.client.get_system_info()
-        # NOTE: the RAM has been taken by index memory (256M)
-        total_memsize = sys_info["memoryQuota"] - 256
+        total_mem = (sys_info['storageTotals']['ram']['quotaTotal'] - sys_info['storageTotals']['ram']['quotaUsed']) / (1024 * 1024)
+        # the minimum memory is a sum of required buckets + minimum mem for `gluu` bucket
+        min_mem = sum([value["mem_alloc"] for value in bucket_mappings.values()]) + 100
 
-        logger.info("Memory size for Couchbase buckets was determined as {} MB".format(total_memsize))
+        if total_mem < min_mem:
+            logger.error("Available quota on couchbase server is less than {} MB; exiting ...".format(min_mem))
+            sys.exit(1)
 
+        logger.info("Memory size for Couchbase buckets was determined as {} MB".format(total_mem))
+
+        # always create `gluu` bucket even when `default` mapping stored in LDAP
         if GLUU_PERSISTENCE_TYPE == "hybrid" and GLUU_PERSISTENCE_LDAP_MAPPING == "default":
-            # always create `gluu` bucket
             memsize = 100
-            total_memsize -= memsize
 
             logger.info("Creating bucket {0} with type {1} and RAM size {2}".format("gluu", bucket_type, memsize))
             req = self.client.add_bucket("gluu", memsize, bucket_type)
@@ -431,7 +419,9 @@ class CouchbaseBackend(object):
             if mapping["bucket"] in remote_buckets:
                 continue
 
-            memsize = calculate_bucket_memory(name, bucket_mappings, total_memsize)
+            memsize = int(
+                (mapping["mem"] / min_mem) * total_mem
+            )
 
             logger.info("Creating bucket {0} with type {1} and RAM size {2}".format(mapping["bucket"], bucket_type, memsize))
             req = self.client.add_bucket(mapping["bucket"], memsize, bucket_type)
