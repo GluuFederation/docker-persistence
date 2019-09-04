@@ -632,7 +632,7 @@ class LDAPBackend(object):
             except (LDAPSessionTerminatedByServerError, LDAPSocketOpenError) as exc:
                 reason = exc
 
-            logger.warn("Index is not ready; reason={}; "
+            logger.warn("Waiting for index to be ready; reason={}; "
                         "retrying in {} seconds".format(reason, sleep_duration))
             time.sleep(sleep_duration)
 
