@@ -107,6 +107,3 @@ vault_role_id.txt
 vault_secret_id.txt
 /tmp
 templates/ldif/98-radius.ldif
-# Casa
-static/extension/client_registration/Casa.py
-static/extension/person_authentication/Casa.py
