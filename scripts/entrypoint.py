@@ -611,7 +611,7 @@ class LDAPBackend(object):
              "cn=Backends,cn=config".format(index_name, backend)
 
         max_wait_time = 300
-        sleep_duration = 5
+        sleep_duration = 10
 
         for i in range(0, max_wait_time, sleep_duration):
             try:
@@ -696,7 +696,7 @@ class LDAPBackend(object):
 
     def add_entry(self, dn, attrs):
         max_wait_time = 300
-        sleep_duration = 5
+        sleep_duration = 10
 
         for i in range(0, max_wait_time, sleep_duration):
             try:
