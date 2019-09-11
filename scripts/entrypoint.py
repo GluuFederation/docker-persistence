@@ -19,6 +19,8 @@ from pygluu.containerlib.utils import decode_text
 from pygluu.containerlib.utils import safe_render
 from pygluu.containerlib.utils import generate_base64_contents
 from pygluu.containerlib.utils import as_boolean
+from pygluu.containerlib.persistence.couchbase import get_couchbase_user
+from pygluu.containerlib.persistence.couchbase import get_couchbase_password
 
 from cbm import CBM
 from settings import LOGGING_CONFIG
@@ -71,8 +73,10 @@ def get_bucket_mappings():
                 "o_metric.ldif",
                 "gluu_radius_clients.ldif",
                 "passport_clients.ldif",
+                "scripts_casa.ldif",
             ],
             "mem_alloc": 100,
+            "document_key_prefix": [],
         },
         "user": {
             "bucket": "gluu_user",
@@ -81,6 +85,7 @@ def get_bucket_mappings():
                 "groups.ldif",
             ],
             "mem_alloc": 300,
+            "document_key_prefix": ["groups_", "people_"],
         },
         "site": {
             "bucket": "gluu_site",
@@ -88,16 +93,19 @@ def get_bucket_mappings():
                 "o_site.ldif",
             ],
             "mem_alloc": 100,
+            "document_key_prefix": ["site_", "cache-refresh_"],
         },
         "token": {
             "bucket": "gluu_token",
             "files": [],
             "mem_alloc": 300,
+            "document_key_prefix": ["tokens_"],
         },
         "cache": {
             "bucket": "gluu_cache",
             "files": [],
             "mem_alloc": 300,
+            "document_key_prefix": ["cache_"],
         },
     })
 
@@ -198,15 +206,7 @@ def get_base_ctx(manager):
         'hostname': manager.config.get('hostname'),
         'idp_client_id': manager.config.get('idp_client_id'),
         'idpClient_encoded_pw': manager.secret.get('idpClient_encoded_pw'),
-        # 'oxauth_config_base64': manager.secret.get('oxauth_config_base64'),
-        # 'oxauth_static_conf_base64': manager.config.get('oxauth_static_conf_base64'),
         'oxauth_openid_key_base64': manager.secret.get('oxauth_openid_key_base64'),
-        # 'oxauth_error_base64': manager.config.get('oxauth_error_base64'),
-        # 'oxtrust_config_base64': manager.secret.get('oxtrust_config_base64'),
-        # 'oxtrust_cache_refresh_base64': manager.secret.get('oxtrust_cache_refresh_base64'),
-        # 'oxtrust_import_person_base64': manager.config.get('oxtrust_import_person_base64'),
-        # 'oxidp_config_base64': manager.secret.get('oxidp_config_base64'),
-        # 'passport_central_config_base64': manager.secret.get("passport_central_config_base64"),
         'passport_rs_client_id': manager.config.get('passport_rs_client_id'),
         'passport_rs_client_base64_jwks': manager.secret.get('passport_rs_client_base64_jwks'),
         'passport_rp_client_id': manager.config.get('passport_rp_client_id'),
@@ -370,11 +370,8 @@ def prepare_template_ctx(manager):
 class CouchbaseBackend(object):
     def __init__(self, manager):
         hostname = GLUU_COUCHBASE_URL
-        user = manager.config.get("couchbase_server_user")
-        password = decode_text(
-            manager.secret.get("encoded_couchbase_server_pw"),
-            manager.secret.get("encoded_salt"),
-        )
+        user = get_couchbase_user(manager)
+        password = get_couchbase_password(manager)
         self.client = CBM(hostname, user, password)
         self.manager = manager
 
@@ -497,19 +494,22 @@ class CouchbaseBackend(object):
             logger.info("Running Couchbase index creation for {} bucket (if not exist)".format(bucket))
 
             with open(query_file, "w") as f:
-                f.write('CREATE PRIMARY INDEX def_primary on `%s` USING GSI WITH {"defer_build":true};\n' % (bucket))
+                index_list = indexes.get(bucket, {})
+                index_names = []
 
-                index_list = indexes[bucket]
-                if "dn" not in index_list:
-                    index_list.insert(0, "dn")
-
-                index_names = ["def_primary"]
-                for index in index_list:
+                for index in index_list.get("attributes", []):
                     index_name = "def_{0}_{1}".format(bucket, index)
                     f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket, index))
                     index_names.append(index_name)
 
-                f.write('BUILD INDEX ON `%s` (%s) USING GSI;\n' % (bucket, ', '.join(index_names)))
+                if index_names:
+                    f.write('BUILD INDEX ON `%s` (%s) USING GSI;\n' % (bucket, ', '.join(index_names)))
+
+                sic = 1
+                for attribs, wherec in index_list.get("static", []):
+                    attrquoted = ['`{}`'.format(a) for a in attribs]
+                    attrquoteds = ', '.join(attrquoted)
+                    f.write('CREATE INDEX `{0}_static_{1:02d}` ON `{0}`({2}) WHERE ({3})\n'.format(bucket, sic, attrquoteds, wherec))
 
             # exec query
             with open(query_file) as f:
@@ -568,19 +568,16 @@ class CouchbaseBackend(object):
     def initialize(self):
         bucket_mappings = get_bucket_mappings()
 
-        self.configure_couchbase()
+        # self.configure_couchbase()
 
-        time.sleep(5)
-        self.import_cert()
+        # time.sleep(5)
+        # self.import_cert()
 
         time.sleep(5)
         self.create_buckets(bucket_mappings)
 
         time.sleep(5)
         self.create_indexes(bucket_mappings)
-
-        # time.sleep(5)
-        # get_oxtrust_ctx()
 
         time.sleep(5)
         self.import_ldif(bucket_mappings)
@@ -657,6 +654,7 @@ class LDAPBackend(object):
                 "o_metric.ldif",
                 "gluu_radius_clients.ldif",
                 "passport_clients.ldif",
+                "scripts_casa.ldif",
             ],
             "user": [
                 "people.ldif",

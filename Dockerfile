@@ -69,6 +69,8 @@ ENV GLUU_SECRET_ADAPTER=vault \
 ENV GLUU_PERSISTENCE_TYPE=couchbase \
     GLUU_PERSISTENCE_LDAP_MAPPING=default \
     GLUU_COUCHBASE_URL=localhost \
+    GLUU_COUCHBASE_USER=admin \
+    GLUU_COUCHBASE_PASSWORD_FILE=/etc/gluu/conf/couchbase_password \
     GLUU_LDAP_URL=localhost:1636
 
 # ===========
@@ -93,7 +95,7 @@ LABEL name="Persistence" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"
 
-RUN mkdir -p /app/tmp /etc/certs
+RUN mkdir -p /app/tmp /etc/certs /etc/gluu/conf
 
 COPY scripts /app/scripts
 COPY static /app/static
