@@ -2,7 +2,6 @@ import json
 import logging
 import logging.config
 import os
-import sys
 import time
 from collections import OrderedDict
 
@@ -117,39 +116,94 @@ def get_bucket_mappings():
     return bucket_mappings
 
 
-def prepare_list_attrs():
-    attrs = ["member"]
+class AttrProcessor(object):
+    def __init__(self):
+        self._attrs = {}
 
-    with open("/app/static/gluu_schema.json") as f:
-        gluu_schema = json.loads(f.read())
+    @property
+    def syntax_types(self):
+        return {
+            '1.3.6.1.4.1.1466.115.121.1.7': 'boolean',
+            '1.3.6.1.4.1.1466.115.121.1.27': 'integer',
+        }
 
-    for type_, objects in gluu_schema.iteritems():
-        if type_ not in ("objectClasses", "attributeTypes"):
-            continue
+    def process(self):
+        attrs = {}
 
-        for obj in objects:
-            if not obj.get("multivalued"):
-                continue
-            attrs += obj["names"]
+        with open("/app/static/opendj_types.json") as f:
+            attr_maps = json.loads(f.read())
+            for type_, names in attr_maps.iteritems():
+                for name in names:
+                    attrs[name] = {"type": type_, "multivalued": False}
 
-    # make the list
-    return list(set(attrs))
+        with open("/app/static/gluu_schema.json") as f:
+            gluu_schema = json.loads(f.read()).get("attributeTypes", {})
+            for schema in gluu_schema:
+                if schema.get("json"):
+                    type_ = "json"
+                elif schema["syntax"] in self.syntax_types:
+                    type_ = self.syntax_types[schema["syntax"]]
+                else:
+                    type_ = "string"
+
+                multivalued = schema.get("multivalued", False)
+                for name in schema["names"]:
+                    attrs[name] = {
+                        "type": type_,
+                        "multivalued": multivalued,
+                    }
+
+        # override `member`
+        attrs["member"]["multivalued"] = True
+        return attrs
+
+    @property
+    def attrs(self):
+        if not self._attrs:
+            self._attrs = self.process()
+        return self._attrs
+
+    def is_multivalued(self, name):
+        return self.attrs.get(name, {}).get("multivalued", False)
+
+    def get_type(self, name):
+        return self.attrs.get(name, {}).get("type", "string")
 
 
-def transform_values(seq):
-    values = []
-    for item in seq:
-        if item in ("true", "false"):
-            item = as_boolean(item)
-        values.append(item)
-    return values
+def transform_values(name, values, attr_processor):
+    def as_dict(val):
+        return json.loads(val)
+
+    def as_bool(val):
+        return val.lower() in ("true", "yes", "1", "on")
+
+    def as_int(val):
+        try:
+            val = int(val)
+        except (TypeError, ValueError):
+            pass
+        return val
+
+    callbacks = {
+        "json": as_dict,
+        "boolean": as_bool,
+        "integer": as_int,
+    }
+
+    type_ = attr_processor.get_type(name)
+    callback = callbacks.get(type_)
+
+    # maybe string
+    if not callable(callback):
+        return values
+    return [callback(item) for item in values]
 
 
-def transform_entry(entry, list_attrs):
+def transform_entry(entry, attr_processor):
     for k, v in entry.iteritems():
-        v = transform_values(v)
+        v = transform_values(k, v, attr_processor)
 
-        if len(v) < 2 and k not in list_attrs:
+        if len(v) == 1 and attr_processor.is_multivalued(k) is False:
             entry[k] = v[0]
 
         if k != "objectClass":
@@ -450,8 +504,7 @@ class CouchbaseBackend(object):
         logger.info("Minimum memory size for Couchbase buckets was determined as {} MB".format(min_mem))
 
         if total_mem < min_mem:
-            logger.error("Available quota on couchbase server is less than {} MB; exiting ...".format(min_mem))
-            sys.exit(1)
+            logger.error("Available quota on couchbase server is less than {} MB".format(min_mem))
 
         # always create `gluu` bucket even when `default` mapping stored in LDAP
         if GLUU_PERSISTENCE_TYPE == "hybrid" and GLUU_PERSISTENCE_LDAP_MAPPING == "default":
@@ -529,7 +582,7 @@ class CouchbaseBackend(object):
 
     def import_ldif(self, bucket_mappings):
         ctx = prepare_template_ctx(self.manager)
-        list_attrs = prepare_list_attrs()
+        attr_processor = AttrProcessor()
 
         for _, mapping in bucket_mappings.iteritems():
             for file_ in mapping["files"]:
@@ -547,7 +600,7 @@ class CouchbaseBackend(object):
 
                         key = get_key_from(dn)
                         entry["dn"] = [dn]
-                        entry = transform_entry(entry, list_attrs)
+                        entry = transform_entry(entry, attr_processor)
                         data = json.dumps(entry)
                         # using INSERT will cause duplication error, but the data is left intact
                         query = 'INSERT INTO `%s` (KEY, VALUE) VALUES ("%s", %s);\n' % (mapping["bucket"], key, data)
