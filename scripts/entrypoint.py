@@ -319,6 +319,8 @@ def get_base_ctx(manager):
         "passportSpTLSKey": manager.config.get("passportSpTLSKey"),
         "oxauth_openidScopeBackwardCompatibility": manager.config.get("oxauth_openidScopeBackwardCompatibility"),
         "fido2ConfigFolder": manager.config.get("fido2ConfigFolder"),
+
+        "admin_inum": manager.config.get("admin_inum"),
     }
     return ctx
 
@@ -551,8 +553,9 @@ class CouchbaseBackend(object):
                 index_names = []
 
                 for index in index_list.get("attributes", []):
-                    index_name = "def_{0}_{1}".format(bucket, index)
-                    f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket, index))
+                    attr_ = ','.join(['`{}`'.format(a) for a in index])
+                    index_name = "def_{0}_{1}".format(bucket, '_'.join(index))
+                    f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket, attr_))
                     index_names.append(index_name)
 
                 if index_names:
@@ -563,6 +566,7 @@ class CouchbaseBackend(object):
                     attrquoted = ['`{}`'.format(a) for a in attribs]
                     attrquoteds = ', '.join(attrquoted)
                     f.write('CREATE INDEX `{0}_static_{1:02d}` ON `{0}`({2}) WHERE ({3})\n'.format(bucket, sic, attrquoteds, wherec))
+                    sic += 1
 
             # exec query
             with open(query_file) as f:

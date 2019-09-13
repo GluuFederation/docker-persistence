@@ -6,6 +6,7 @@ objectClass: top
 objectClass: organizationalUnit
 ou: oxidp
 
+
 dn: ou=cas,ou=oxidp,o=gluu
 objectClass: top
 objectClass: organizationalUnit
