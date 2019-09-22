@@ -4,11 +4,9 @@ FROM alpine:3.9
 # Alpine packages
 # ===============
 
-RUN apk update && apk add --no-cache \
-    py-pip \
-    wget \
-    shadow \
-    git
+RUN apk update \
+    && apk add --no-cache py-pip wget shadow \
+    && apk add --no-cache --virtual build-deps git
 
 # ====
 # Tini
@@ -23,8 +21,21 @@ RUN wget -q https://github.com/krallin/tini/releases/download/v0.18.0/tini-stati
 
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install -U pip \
-    && pip install --no-cache-dir -r /tmp/requirements.txt \
-    && apk del git
+    && pip install --no-cache-dir -r /tmp/requirements.txt
+
+# =======
+# Cleanup
+# =======
+
+RUN apk del build-deps \
+    && rm -rf /var/cache/apk/*
+
+# =======
+# License
+# =======
+
+RUN mkdir -p /licenses
+COPY LICENSE /licenses/
 
 # ==========
 # Config ENV
@@ -70,6 +81,7 @@ ENV GLUU_PERSISTENCE_TYPE=couchbase \
     GLUU_PERSISTENCE_LDAP_MAPPING=default \
     GLUU_COUCHBASE_URL=localhost \
     GLUU_COUCHBASE_USER=admin \
+    GLUU_COUCHBASE_CERT_FILE=/etc/certs/couchbase.crt \
     GLUU_COUCHBASE_PASSWORD_FILE=/etc/gluu/conf/couchbase_password \
     GLUU_LDAP_URL=localhost:1636
 

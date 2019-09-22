@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import logging.config
@@ -125,6 +126,7 @@ class AttrProcessor(object):
         return {
             '1.3.6.1.4.1.1466.115.121.1.7': 'boolean',
             '1.3.6.1.4.1.1466.115.121.1.27': 'integer',
+            '1.3.6.1.4.1.1466.115.121.1.24': 'datetime',
         }
 
     def process(self):
@@ -184,10 +186,23 @@ def transform_values(name, values, attr_processor):
             pass
         return val
 
+    def as_datetime(val):
+        if '.' in val:
+            date_format = '%Y%m%d%H%M%S.%fZ'
+        else:
+            date_format = '%Y%m%d%H%M%SZ'
+
+        if not val.lower().endswith('z'):
+            val += 'Z'
+
+        dt = datetime.datetime.strptime(val, date_format)
+        return dt.isoformat()
+
     callbacks = {
         "json": as_dict,
         "boolean": as_bool,
         "integer": as_int,
+        "datetime": as_datetime,
     }
 
     type_ = attr_processor.get_type(name)
@@ -553,8 +568,16 @@ class CouchbaseBackend(object):
                 index_names = []
 
                 for index in index_list.get("attributes", []):
-                    attr_ = ','.join(['`{}`'.format(a) for a in index])
-                    index_name = "def_{0}_{1}".format(bucket, '_'.join(index))
+                    if '(' in ''.join(index):
+                        attr_ = index[0]
+                        index_name_ = index[0].replace('(', '_').replace(')', '_').replace('`', '').lower()
+                        if index_name_.endswith('_'):
+                            index_name_ = index_name_[:-1]
+                        index_name = 'def_{0}_{1}'.format(bucket, index_name_)
+                    else:
+                        attr_ = ','.join(['`{}`'.format(a) for a in index])
+                        index_name = "def_{0}_{1}".format(bucket, '_'.join(index))
+
                     f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket, attr_))
                     index_names.append(index_name)
 
@@ -574,6 +597,7 @@ class CouchbaseBackend(object):
                     query = line.strip()
                     if not query:
                         continue
+
                     req = self.client.exec_query(query)
                     if not req.ok:
                         # the following code should be ignored
@@ -729,11 +753,12 @@ class LDAPBackend(object):
             mapping = GLUU_PERSISTENCE_LDAP_MAPPING
             ldif_mappings = {mapping: ldif_mappings[mapping]}
 
-            # these mappings require `base.ldif`
-            opt_mappings = ("user", "token",)
+            # # these mappings require `base.ldif`
+            # opt_mappings = ("user", "token",)
 
             # `user` mapping requires `o=gluu` which available in `base.ldif`
-            if mapping in opt_mappings and "base.ldif" not in ldif_mappings[mapping]:
+            # if mapping in opt_mappings and "base.ldif" not in ldif_mappings[mapping]:
+            if "base.ldif" not in ldif_mappings[mapping]:
                 ldif_mappings[mapping].insert(0, "base.ldif")
 
         ctx = prepare_template_ctx(self.manager)

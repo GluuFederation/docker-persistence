@@ -1,11 +1,11 @@
 {
   "gluu_user": {
     "attributes": [
-      ["objectClass"], 
-      ["oxStatus"], 
-      ["creationDate"], 
-      ["uid"], 
-      ["del"], 
+      ["objectClass"],
+      ["oxStatus"],
+      ["creationDate"],
+      ["LOWER(`uid`)"],
+      ["del"],
       ["mail"],
       ["inum"],
       ["displayName"],
@@ -32,21 +32,21 @@
   "gluu": {
     "attributes": [
       ["objectClass"],
-      ["oxScriptType"], 
-      ["oxAuthExpiration"], 
-      ["iat"], 
-      ["oxAuthClientSecretExpiresAt"], 
-      ["creationDate"], 
-      ["tknCde"], 
-      ["inum"], 
-      ["displayName"], 
-      ["oxAuthRegistrationAccessToken"], 
-      ["uid"], 
-      ["authzCode"], 
-      ["oxAuthClaimName"], 
-      ["mail"], 
-      ["oxId"], 
-      ["oxTicket"], 
+      ["oxScriptType"],
+      ["oxAuthExpiration"],
+      ["iat"],
+      ["oxAuthClientSecretExpiresAt"],
+      ["creationDate"],
+      ["tknCde"],
+      ["inum"],
+      ["displayName"],
+      ["oxAuthRegistrationAccessToken"],
+      ["uid"],
+      ["authzCode"],
+      ["oxAuthClaimName"],
+      ["mail"],
+      ["oxId"],
+      ["oxTicket"],
       ["del"],
       ["ssnId"],
       ["oxAuthClientId"],
@@ -59,24 +59,24 @@
       [["oxScriptType"], "objectClass = \"oxCustomScript\""],
       [["oxApplicationType", "oxMetricType", "oxStartDate", "oxEndDate"], "objectClass = \"oxMetric\""],
       [["exp", "oxAuthExpiration"], "del=true"]
-        
+
     ]
   },
 
   "gluu_site": {
     "attributes": [
-        ["objectClass"], 
+        ["objectClass"],
         ["inum"]
-    ], 
+    ],
     "static" : [
     ]
   },
 
   "gluu_statistic": {
     "attributes": [
-      ["objectClass"], 
-      ["oxStartDate"], 
-      ["del"], 
+      ["objectClass"],
+      ["oxStartDate"],
+      ["del"],
       ["oxAuthExpiration"]
     ],
     "static" : [
@@ -88,7 +88,8 @@
       ["del","exp"]
     ],
     "static" : [
-      [["exp", "oxAuthExpiration"], "del=true"]
+      [["exp", "oxAuthExpiration"], "del=true"],
+      [["oxAuthExpiration"], "objectClass = \"cache\""]
     ]
   },
 
@@ -99,7 +100,7 @@
     "static" : [
       [["exp", "oxAuthExpiration"], "del=true"],
       [["grtId"], "objectClass = \"token\""]
-    
+
     ]
   },
 
