@@ -326,7 +326,7 @@ def get_base_ctx(manager):
 
         "pairwiseCalculationKey": manager.secret.get("pairwiseCalculationKey"),
         "pairwiseCalculationSalt": manager.secret.get("pairwiseCalculationSalt"),
-        "default_openid_jks_dn_name": manager.secret.get("default_openid_jks_dn_name"),
+        "default_openid_jks_dn_name": manager.config.get("default_openid_jks_dn_name"),
         "oxauth_openid_jks_fn": manager.config.get("oxauth_openid_jks_fn"),
         "oxauth_openid_jks_pass": manager.secret.get("oxauth_openid_jks_pass"),
         "oxauth_legacyIdTokenClaims": manager.config.get("oxauth_legacyIdTokenClaims"),
