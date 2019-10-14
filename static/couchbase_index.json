@@ -1,20 +1,15 @@
 {
   "gluu_user": {
     "attributes": [
-      ["objectClass"],
-      ["oxStatus"],
-      ["creationDate"],
-      ["LOWER(`uid`)"],
-      ["del"],
-      ["mail"],
-      ["inum"],
-      ["displayName"],
-      ["sn"],
-      ["del","exp"]
+      ["objectClass"], 
+      ["creationDate"], 
+      ["inum"], 
+      ["del","exp"] 
     ],
     "static" : [
-      [["uid"], "objectClass = \"gluuPerson\""],
-      [["exp", "oxAuthExpiration"], "del=true"]
+      [["LOWER(`uid`)"], "objectClass = \"gluuPerson\""], 
+      [["DISTINCT(PAIRS(self))"], "objectClass = \"gluuPerson\""], 
+      [["exp", "oxAuthExpiration"], "del=true"] 
     ]
   },
 
@@ -32,21 +27,19 @@
   "gluu": {
     "attributes": [
       ["objectClass"],
-      ["oxScriptType"],
-      ["oxAuthExpiration"],
-      ["iat"],
-      ["oxAuthClientSecretExpiresAt"],
-      ["creationDate"],
-      ["tknCde"],
-      ["inum"],
-      ["displayName"],
-      ["oxAuthRegistrationAccessToken"],
-      ["uid"],
-      ["authzCode"],
-      ["oxAuthClaimName"],
-      ["mail"],
-      ["oxId"],
-      ["oxTicket"],
+      ["oxScriptType"], 
+      ["oxAuthExpiration"], 
+      ["iat"], 
+      ["oxAuthClientSecretExpiresAt"], 
+      ["creationDate"], 
+      ["tknCde"], 
+      ["inum"], 
+      ["displayName"], 
+      ["oxAuthRegistrationAccessToken"], 
+      ["oxAuthClaimName"], 
+      ["mail"], 
+      ["oxId"], 
+      ["oxTicket"], 
       ["del"],
       ["ssnId"],
       ["oxAuthClientId"],
@@ -59,24 +52,24 @@
       [["oxScriptType"], "objectClass = \"oxCustomScript\""],
       [["oxApplicationType", "oxMetricType", "oxStartDate", "oxEndDate"], "objectClass = \"oxMetric\""],
       [["exp", "oxAuthExpiration"], "del=true"]
-
+        
     ]
   },
 
   "gluu_site": {
     "attributes": [
-        ["objectClass"],
+        ["objectClass"], 
         ["inum"]
-    ],
+    ], 
     "static" : [
     ]
   },
 
   "gluu_statistic": {
     "attributes": [
-      ["objectClass"],
-      ["oxStartDate"],
-      ["del"],
+      ["objectClass"], 
+      ["oxStartDate"], 
+      ["del"], 
       ["oxAuthExpiration"]
     ],
     "static" : [
@@ -95,12 +88,13 @@
 
   "gluu_token": {
     "attributes": [
-      ["del","exp"]
+      ["del","exp"],
+      ["authzCode"]
     ],
     "static" : [
       [["exp", "oxAuthExpiration"], "del=true"],
-      [["grtId"], "objectClass = \"token\""]
-
+      [["grtId"], "objectClass = \"token\""],
+      [["ssnId"], "objectClass = \"token\""]
     ]
   },
 

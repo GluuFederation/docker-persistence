@@ -315,8 +315,8 @@ def get_base_ctx(manager):
 
         "gluu_radius_client_id": manager.config.get("gluu_radius_client_id"),
         "gluu_ro_encoded_pw": manager.secret.get("gluu_ro_encoded_pw"),
-        "super_gluu_ro_session_script": manager.config.get("super_gluu_ro_session_script"),
-        "super_gluu_ro_script": manager.config.get("super_gluu_ro_script"),
+        # "super_gluu_ro_session_script": manager.config.get("super_gluu_ro_session_script"),
+        # "super_gluu_ro_script": manager.config.get("super_gluu_ro_script"),
         "enableRadiusScripts": "false",
         "gluu_ro_client_base64_jwks": manager.secret.get("gluu_ro_client_base64_jwks"),
 
@@ -586,8 +586,15 @@ class CouchbaseBackend(object):
 
                 sic = 1
                 for attribs, wherec in index_list.get("static", []):
-                    attrquoted = ['`{}`'.format(a) for a in attribs]
+                    attrquoted = []
+
+                    for a in attribs:
+                        if '(' not in a:
+                            attrquoted.append('`{}`'.format(a))
+                        else:
+                            attrquoted.append(a)
                     attrquoteds = ', '.join(attrquoted)
+
                     f.write('CREATE INDEX `{0}_static_{1:02d}` ON `{0}`({2}) WHERE ({3})\n'.format(bucket, sic, attrquoteds, wherec))
                     sic += 1
 
