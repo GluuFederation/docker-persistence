@@ -243,6 +243,7 @@
     "jsLocation":"",
     "imgLocation":"",
     "metricReporterInterval":300,
+     "metricReporterEnabled":true,
     "metricReporterKeepDataDays":15,
     "pairwiseIdType":"algorithmic",
     "pairwiseCalculationKey":"%(pairwiseCalculationKey)s",
