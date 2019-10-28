@@ -6,7 +6,6 @@ import os
 import time
 from collections import OrderedDict
 
-import requests
 from ldap3 import BASE
 from ldap3 import Connection
 from ldap3 import Server
@@ -21,6 +20,7 @@ from pygluu.containerlib.utils import generate_base64_contents
 from pygluu.containerlib.utils import as_boolean
 from pygluu.containerlib.persistence.couchbase import get_couchbase_user
 from pygluu.containerlib.persistence.couchbase import get_couchbase_password
+from pygluu.containerlib.persistence.couchbase import resolve_couchbase_host
 
 from cbm import CBM
 from settings import LOGGING_CONFIG
@@ -443,71 +443,10 @@ class CouchbaseBackend(object):
         hostname = GLUU_COUCHBASE_URL
         user = get_couchbase_user(manager)
         password = get_couchbase_password(manager)
-        self.client = CBM(hostname, user, password)
+
+        active_host = resolve_couchbase_host(hostname, user, password)
+        self.client = CBM(active_host, user, password)
         self.manager = manager
-
-    def configure_couchbase(self):
-        logger.info("Initializing Couchbase Node")
-        req = self.client.initialize_node()
-        if not req.ok:
-            logger.warn("Failed to initilize Couchbase Node, reason={}".format(req.text))
-
-        logger.info("Renaming Couchbase Node")
-        req = self.client.rename_node()
-        if not req.ok:
-            logger.warn("Failed to rename Couchbase Node, reason={}".format(req.text))
-
-        logger.info("Setting Couchbase index storage mode")
-        req = self.client.set_index_storage_mode()
-        if not req.ok:
-            logger.warn("Failed to set Couchbase index storage mode; reason={}".format(req.text))
-
-        logger.info("Setting Couchbase indexer memory quota")
-        req = self.client.set_index_memory_quta()
-        if not req.ok:
-            logger.warn("Failed to set Couchbase indexer memory quota; reason={}".format(req.text))
-
-        logger.info("Setting up Couchbase Services")
-        req = self.client.setup_services()
-        if not req.ok:
-            logger.warn("Failed to setup Couchbase services; reason={}".format(req.text))
-
-        logger.info("Setting Couchbase Admin password")
-        req = self.client.set_admin_password()
-        if not req.ok:
-            logger.warn("Failed to set Couchbase admin password; reason={}".format(req.text))
-
-    def import_cert(self):
-        logger.info("Updating certificates")
-
-        txt = self.manager.secret.get("couchbase_cluster_cert")
-        base_url = "https://{}:18091".format(GLUU_COUCHBASE_URL)
-
-        with requests.Session() as session:
-            session.auth = (self.client.auth.username, self.client.auth.password)
-            session.verify = False
-
-            req = session.post(
-                "{}/controller/uploadClusterCA".format(base_url),
-                headers={"Content-Type": "application/octet-stream"},
-                data=txt,
-            )
-            if not req.ok:
-                logger.warn("Unable to upload cluster cert; reason={}".format(req.text))
-
-            time.sleep(5)
-            req = session.post("{}/node/controller/reloadCertificate".format(base_url))
-            if not req.ok:
-                logger.warn("Unable to reload node cert; reason={}".format(req.text))
-
-            # req = session.post(
-            #     "{}/settings/clientCertAuth".format(base_url),
-            #     json={"state": "enable", "prefixes": [
-            #         {"path": "subject.cn", "prefix": "", "delimiter": ""},
-            #     ]},
-            # )
-            # if not req.ok:
-            #     logger.warn("Unable to set client cert auth; reason={}".format(req.text))
 
     def create_buckets(self, bucket_mappings, bucket_type="couchbase"):
         sys_info = self.client.get_system_info()
@@ -655,11 +594,6 @@ class CouchbaseBackend(object):
 
     def initialize(self):
         bucket_mappings = get_bucket_mappings()
-
-        # self.configure_couchbase()
-
-        # time.sleep(5)
-        # self.import_cert()
 
         time.sleep(5)
         self.create_buckets(bucket_mappings)
