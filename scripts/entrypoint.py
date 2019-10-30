@@ -20,9 +20,8 @@ from pygluu.containerlib.utils import generate_base64_contents
 from pygluu.containerlib.utils import as_boolean
 from pygluu.containerlib.persistence.couchbase import get_couchbase_user
 from pygluu.containerlib.persistence.couchbase import get_couchbase_password
-from pygluu.containerlib.persistence.couchbase import resolve_couchbase_host
+from pygluu.containerlib.persistence.couchbase import CouchbaseClient
 
-from cbm import CBM
 from settings import LOGGING_CONFIG
 
 GLUU_CACHE_TYPE = os.environ.get("GLUU_CACHE_TYPE", "NATIVE_PERSISTENCE")
@@ -443,24 +442,26 @@ class CouchbaseBackend(object):
         hostname = GLUU_COUCHBASE_URL
         user = get_couchbase_user(manager)
         password = get_couchbase_password(manager)
-
-        active_host = resolve_couchbase_host(hostname, user, password)
-        self.client = CBM(active_host, user, password)
+        self.client = CouchbaseClient(hostname, user, password)
         self.manager = manager
 
     def create_buckets(self, bucket_mappings, bucket_type="couchbase"):
         sys_info = self.client.get_system_info()
+
+        if not sys_info:
+            raise RuntimeError("Unable to get system info from Couchbase; aborting ...")
+
         ram_info = sys_info["storageTotals"]["ram"]
 
-        total_mem = (ram_info['quotaTotal'] - ram_info['quotaUsed']) / (1024 * 1024)
+        total_mem = (ram_info['quotaTotalPerNode'] - ram_info['quotaUsedPerNode']) / (1024 * 1024)
         # the minimum memory is a sum of required buckets + minimum mem for `gluu` bucket
         min_mem = sum([value["mem_alloc"] for value in bucket_mappings.values()]) + 100
 
-        logger.info("Memory size for Couchbase buckets was determined as {} MB".format(total_mem))
-        logger.info("Minimum memory size for Couchbase buckets was determined as {} MB".format(min_mem))
+        logger.info("Memory size per node for Couchbase buckets was determined as {} MB".format(total_mem))
+        logger.info("Minimum memory size per node for Couchbase buckets was determined as {} MB".format(min_mem))
 
         if total_mem < min_mem:
-            logger.error("Available quota on couchbase server is less than {} MB".format(min_mem))
+            logger.error("Available quota on couchbase node is less than {} MB".format(min_mem))
 
         # always create `gluu` bucket even when `default` mapping stored in LDAP
         if GLUU_PERSISTENCE_TYPE == "hybrid" and GLUU_PERSISTENCE_LDAP_MAPPING == "default":
