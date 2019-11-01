@@ -7,10 +7,10 @@ run_entrypoint() {
 
 cat << LICENSE_ACK
 
-# ================================================================================================ #
-# Gluu License Agreement: https://github.com/GluuFederation/enterprise-edition/blob/4.0.0/LICENSE. #
-# The use of Gluu Server Enterprise Edition is subject to the Gluu Support License.                #
-# ================================================================================================ #
+# ================================================================================= #
+# Gluu License Agreement: https://www.gluu.org/support-license/                     #
+# The use of Gluu Server Enterprise Edition is subject to the Gluu Support License. #
+# ================================================================================= #
 
 LICENSE_ACK
 
