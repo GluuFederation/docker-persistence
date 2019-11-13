@@ -103,7 +103,7 @@ LABEL name="Persistence" \
     maintainer="Gluu Inc. <support@gluu.org>" \
     vendor="Gluu Federation" \
     version="4.0.1" \
-    release="dev" \
+    release="02" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"
 
