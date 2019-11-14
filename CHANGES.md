@@ -2,6 +2,13 @@
 
 Here you can see an overview of changes between each release.
 
+## Version 4.0.1_03
+
+Released on November 15th, 2019.
+
+* Added missing indexes for Couchbase.
+* Added performance optimization for oxAuth.
+
 ## Version 4.0.1_02
 
 Released on November 14th, 2019.
