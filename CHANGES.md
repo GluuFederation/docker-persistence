@@ -2,6 +2,12 @@
 
 Here you can see an overview of changes between each release.
 
+## Version 4.0.1_04
+
+Released on November 19th, 2019.
+
+* Removed several indexes for Couchbase due to performance degradation.
+
 ## Version 4.0.1_03
 
 Released on November 15th, 2019.
