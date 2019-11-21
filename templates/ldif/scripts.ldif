@@ -161,7 +161,7 @@ objectClass: top
 objectClass: oxCustomScript
 description: Client authorization UMA RPT Policy for oxtrust api
 displayName: oxtrust_api_access_policy
-oxEnabled: false
+oxEnabled: %(oxtrust_api_enable_script)s
 inum: OO11-BAFE
 oxConfigurationProperty: {"value1":"allowed_clients","value2":"%(oxtrust_requesting_party_client_id)s","description":""}
 oxLevel: 100
