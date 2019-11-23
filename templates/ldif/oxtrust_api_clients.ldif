@@ -28,3 +28,18 @@ oxAuthTokenEndpointAuthMethod: private_key_jwt
 oxPersistClientAuthorizations: false
 oxAuthLogoutSessionRequired: false
 oxAuthRequireAuthTime: false
+
+# API Test Client
+dn: inum=%(api_test_client_id)s,ou=clients,o=gluu
+objectClass: top
+objectClass: oxAuthClient
+inum: %(api_test_client_id)s
+displayName: API Test Mode Client
+oxAuthGrantType: client_credentials
+oxAuthTokenEndpointAuthMethod: client_secret_basic
+oxAuthLogoutSessionRequired: false
+oxAuthRequireAuthTime: false
+oxAuthResponseType: token
+oxAuthScope: inum=F0C4,ou=scopes,o=gluu
+oxAuthScope: inum=C4F5,ou=scopes,o=gluu
+oxAuthClientSecret: %(encoded_api_test_client_secret)s

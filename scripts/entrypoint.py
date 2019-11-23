@@ -15,6 +15,7 @@ from ldif3 import LDIFParser
 
 from pygluu.containerlib import get_manager
 from pygluu.containerlib.utils import decode_text
+from pygluu.containerlib.utils import encode_text
 from pygluu.containerlib.utils import safe_render
 from pygluu.containerlib.utils import generate_base64_contents
 from pygluu.containerlib.utils import as_boolean
@@ -36,6 +37,7 @@ GLUU_COUCHBASE_URL = os.environ.get("GLUU_COUCHBASE_URL", "localhost")
 GLUU_LDAP_URL = os.environ.get("GLUU_LDAP_URL", "localhost:1636")
 
 GLUU_OXTRUST_API_ENABLED = os.environ.get("GLUU_OXTRUST_API_ENABLED", False)
+GLUU_OXTRUST_API_TEST_MODE = os.environ.get("GLUU_OXTRUST_API_TEST_MODE", False)
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("entrypoint")
@@ -296,7 +298,7 @@ def get_base_ctx(manager):
         'admin_email': manager.config.get('admin_email'),
         'shibJksFn': manager.config.get('shibJksFn'),
         'shibJksPass': manager.secret.get('shibJksPass'),
-        'oxTrustConfigGeneration': "true" if as_boolean(GLUU_OXTRUST_CONFIG_GENERATION) else "false",
+        'oxTrustConfigGeneration': str(as_boolean(GLUU_OXTRUST_CONFIG_GENERATION)).lower(),
         'encoded_shib_jks_pw': manager.secret.get('encoded_shib_jks_pw'),
         'scim_rs_client_jks_fn': manager.config.get('scim_rs_client_jks_fn'),
         'scim_rs_client_jks_pass_encoded': manager.secret.get('scim_rs_client_jks_pass_encoded'),
@@ -338,6 +340,12 @@ def get_base_ctx(manager):
 
         "admin_inum": manager.config.get("admin_inum"),
         "oxtrust_api_enable_script": str(as_boolean(GLUU_OXTRUST_API_ENABLED)).lower(),
+        "oxtrust_api_test_mode": str(as_boolean(GLUU_OXTRUST_API_TEST_MODE)).lower(),
+        "api_test_client_id": manager.config.get("api_test_client_id"),
+        "encoded_api_test_client_secret": encode_text(
+            manager.secret.get("api_test_client_secret"),
+            manager.secret.get("encoded_salt"),
+        ),
     }
     return ctx
 
