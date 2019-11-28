@@ -38,6 +38,10 @@ GLUU_LDAP_URL = os.environ.get("GLUU_LDAP_URL", "localhost:1636")
 
 GLUU_OXTRUST_API_ENABLED = os.environ.get("GLUU_OXTRUST_API_ENABLED", False)
 GLUU_OXTRUST_API_TEST_MODE = os.environ.get("GLUU_OXTRUST_API_TEST_MODE", False)
+GLUU_PASSPORT_ENABLED = os.environ.get("GLUU_PASSPORT_ENABLED", False)
+GLUU_RADIUS_ENABLED = os.environ.get("GLUU_RADIUS_ENABLED", False)
+GLUU_CASA_ENABLED = os.environ.get("GLUU_CASA_ENABLED", False)
+GLUU_SAML_ENABLED = os.environ.get("GLUU_SAML_ENABLED", False)
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("entrypoint")
@@ -320,12 +324,12 @@ def get_base_ctx(manager):
         "gluu_ro_encoded_pw": manager.secret.get("gluu_ro_encoded_pw"),
         # "super_gluu_ro_session_script": manager.config.get("super_gluu_ro_session_script"),
         # "super_gluu_ro_script": manager.config.get("super_gluu_ro_script"),
-        "enableRadiusScripts": "false",
+        "enableRadiusScripts": "false",  # @TODO: enable it?
         "gluu_ro_client_base64_jwks": manager.secret.get("gluu_ro_client_base64_jwks"),
 
-        "gluuPassportEnabled": "false",
-        "gluuRadiusEnabled": "false",
-        "gluuSamlEnabled": "false",
+        "gluuPassportEnabled": str(as_boolean(GLUU_PASSPORT_ENABLED)).lower(),
+        "gluuRadiusEnabled": str(as_boolean(GLUU_RADIUS_ENABLED)).lower(),
+        "gluuSamlEnabled": str(as_boolean(GLUU_SAML_ENABLED)).lower(),
 
         "pairwiseCalculationKey": manager.secret.get("pairwiseCalculationKey"),
         "pairwiseCalculationSalt": manager.secret.get("pairwiseCalculationSalt"),
@@ -346,6 +350,7 @@ def get_base_ctx(manager):
             manager.secret.get("api_test_client_secret"),
             manager.secret.get("encoded_salt"),
         ),
+        "passport_enable_script": str(as_boolean(GLUU_PASSPORT_ENABLED)).lower(),
     }
     return ctx
 
