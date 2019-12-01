@@ -14,7 +14,7 @@ oxTrustAuthenticationMode: simple_password_auth
 gluuPassportEnabled: %(gluuPassportEnabled)s
 gluuRadiusEnabled: %(gluuRadiusEnabled)s
 gluuSamlEnabled: %(gluuSamlEnabled)s
-oxCacheConfiguration: {"cacheProviderType": "%(cache_provider_type)s", "memcachedConfiguration": {"servers":"%(memcached_url)s", "maxOperationQueueLength":100000, "bufferSize":32768, "defaultPutExpiration":60, "connectionFactoryType": "DEFAULT"}, "inMemoryConfiguration": {"defaultPutExpiration":60}, "nativePersistenceConfiguration": {"defaultPutExpiration":60}, "redisConfiguration":{"servers":"%(redis_url)s", "defaultPutExpiration": 60, "redisProviderType": "%(redis_type)s"}}
+oxCacheConfiguration: {"cacheProviderType": "%(cache_provider_type)s", "memcachedConfiguration": {"servers":"%(memcached_url)s", "maxOperationQueueLength":100000, "bufferSize":32768, "defaultPutExpiration":60, "connectionFactoryType": "DEFAULT"}, "inMemoryConfiguration": {"defaultPutExpiration":60}, "nativePersistenceConfiguration": {"defaultPutExpiration":60, "defaultCleanupBatchSize": 10000}, "redisConfiguration":{"servers":"%(redis_url)s", "defaultPutExpiration": 60, "redisProviderType": "%(redis_type)s"}}
 oxTrustStoreConf: {"useJreCertificates":true}
 oxTrustCacheRefreshServerIpAddress: 255.255.255.255
 oxIDPAuthentication: {"type": "auth",
