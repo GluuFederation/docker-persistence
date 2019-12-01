@@ -351,6 +351,7 @@ def get_base_ctx(manager):
             manager.secret.get("encoded_salt"),
         ),
         "passport_enable_script": str(as_boolean(GLUU_PASSPORT_ENABLED)).lower(),
+        "casa_enable_script": str(as_boolean(GLUU_CASA_ENABLED)).lower(),
     }
     return ctx
 
