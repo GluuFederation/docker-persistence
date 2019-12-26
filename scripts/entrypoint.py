@@ -42,6 +42,8 @@ GLUU_PASSPORT_ENABLED = os.environ.get("GLUU_PASSPORT_ENABLED", False)
 GLUU_RADIUS_ENABLED = os.environ.get("GLUU_RADIUS_ENABLED", False)
 GLUU_CASA_ENABLED = os.environ.get("GLUU_CASA_ENABLED", False)
 GLUU_SAML_ENABLED = os.environ.get("GLUU_SAML_ENABLED", False)
+GLUU_SCIM_ENABLED = os.environ.get("GLUU_SCIM_ENABLED", False)
+GLUU_SCIM_TEST_MODE = os.environ.get("GLUU_SCIM_TEST_MODE", False)
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("entrypoint")
@@ -330,6 +332,7 @@ def get_base_ctx(manager):
         "gluuPassportEnabled": str(as_boolean(GLUU_PASSPORT_ENABLED)).lower(),
         "gluuRadiusEnabled": str(as_boolean(GLUU_RADIUS_ENABLED)).lower(),
         "gluuSamlEnabled": str(as_boolean(GLUU_SAML_ENABLED)).lower(),
+        "gluuScimEnabled": str(as_boolean(GLUU_SCIM_ENABLED)).lower(),
 
         "pairwiseCalculationKey": manager.secret.get("pairwiseCalculationKey"),
         "pairwiseCalculationSalt": manager.secret.get("pairwiseCalculationSalt"),
@@ -351,6 +354,13 @@ def get_base_ctx(manager):
             manager.secret.get("encoded_salt"),
         ),
         "passport_enable_script": str(as_boolean(GLUU_PASSPORT_ENABLED)).lower(),
+        "scim_enable_script": str(as_boolean(GLUU_SCIM_ENABLED) or as_boolean(GLUU_PASSPORT_ENABLED)).lower(),
+        "scim_test_mode": str(as_boolean(GLUU_SCIM_TEST_MODE)).lower(),
+        "scim_test_client_id": manager.config.get("scim_test_client_id"),
+        "encoded_scim_test_client_secret": encode_text(
+            manager.secret.get("scim_test_client_secret"),
+            manager.secret.get("encoded_salt"),
+        ),
         "casa_enable_script": str(as_boolean(GLUU_CASA_ENABLED)).lower(),
     }
     return ctx
