@@ -1,7 +1,6 @@
 dn: inum=29DA,ou=attributes,o=gluu
 description: XRI i-number, persistent non-reassignable identifier
 displayName: Inum
-gluuAttributeEditType: admin
 gluuAttributeName: inum
 gluuAttributeOrigin: gluuPerson
 gluuAttributeType: string

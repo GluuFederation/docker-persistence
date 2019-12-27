@@ -132,12 +132,13 @@
     "clientWhiteList": ["*"],
     "clientBlackList": ["*.attacker.com/*"],
 
-    "scimTestMode": %(scim_test_mode)s,
+    "scimTestMode": %(scimTestMode)s,
     "oxTrustApiTestMode": %(oxtrust_api_test_mode)s,
     "ScimProperties": {
         "maxCount": 200
     },
     "cleanServiceInterval":300,
     "loggingLevel": "INFO",
-    "passwordResetRequestExpirationTime":600
+    "passwordResetRequestExpirationTime":600,
+    "useLocalCache":true
 }

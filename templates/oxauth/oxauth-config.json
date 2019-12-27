@@ -124,7 +124,9 @@
         "client_secret_basic",
         "client_secret_post",
         "client_secret_jwt",
-        "private_key_jwt"
+        "private_key_jwt",
+        "tls_client_auth",
+        "self_signed_tls_client_auth"
     ],
     "tokenEndpointAuthSigningAlgValuesSupported":[
         "HS256",
@@ -176,6 +178,7 @@
     "authorizationCodeLifetime":60,
     "refreshTokenLifetime":14400,
     "idTokenLifetime":3600,
+    "spontaneousScopeLifetime":86400,
     "accessTokenLifetime":300,
     "umaResourceLifetime":2592000,
     "sessionAsJwt":false,
@@ -244,7 +247,6 @@
     "imgLocation":"",
     "metricReporterInterval":300,
     "metricReporterKeepDataDays":15,
-    "metricReporterEnabled":true,
     "pairwiseIdType":"algorithmic",
     "pairwiseCalculationKey":"%(pairwiseCalculationKey)s",
     "pairwiseCalculationSalt": "%(pairwiseCalculationSalt)s",
@@ -307,6 +309,6 @@
         "disableFido2":true
     },
    "loggingLevel": "INFO",
-   "errorHandlingMethod":"internal",
-   "useLocalCache":true
+   "useLocalCache":true,
+   "errorHandlingMethod":"internal"
 }

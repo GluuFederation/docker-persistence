@@ -110,8 +110,8 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
 LABEL name="Persistence" \
     maintainer="Gluu Inc. <support@gluu.org>" \
     vendor="Gluu Federation" \
-    version="4.0.1" \
-    release="06" \
+    version="4.1.0" \
+    release="dev" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"
 
