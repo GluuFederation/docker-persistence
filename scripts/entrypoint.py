@@ -9,6 +9,7 @@ from collections import OrderedDict
 from ldap3 import BASE
 from ldap3 import Connection
 from ldap3 import Server
+from ldap3 import SUBTREE
 from ldap3.core.exceptions import LDAPSessionTerminatedByServerError
 from ldap3.core.exceptions import LDAPSocketOpenError
 from ldif3 import LDIFParser
@@ -621,6 +622,32 @@ class CouchbaseBackend(object):
                             logger.warn("Failed to execute query, reason={}".format(req.json()))
 
     def initialize(self):
+        def is_initialized():
+            persistence_type = os.environ.get("GLUU_PERSISTENCE_TYPE", "couchbase")
+            ldap_mapping = os.environ.get("GLUU_PERSISTENCE_LDAP_MAPPING", "default")
+
+            # only `gluu` and `gluu_user` buckets that may have initial data;
+            # these data also affected by LDAP mapping selection;
+            # by default we will choose the `gluu` bucket
+            bucket, key = "gluu", "configuration_oxtrust"
+
+            # if `hybrid` is selected and default mapping is stored in LDAP,
+            # the `gluu` bucket won't have data, hence we check the `gluu_user` instead
+            if persistence_type == "hybrid" and ldap_mapping == "default":
+                bucket, key = "gluu_user", "groups_60B7"
+
+            query = "SELECT objectClass FROM {0} USE KEYS '{1}'".format(bucket, key)
+
+            req = self.client.exec_query(query)
+            if req.ok:
+                data = req.json()
+                return bool(data["results"])
+            return False
+
+        if is_initialized():
+            logger.info("Couchbase backend already initialized")
+            return
+
         bucket_mappings = get_bucket_mappings()
 
         time.sleep(5)
@@ -764,6 +791,41 @@ class LDAPBackend(object):
             time.sleep(sleep_duration)
 
     def initialize(self):
+        def is_initialized():
+            persistence_type = os.environ.get("GLUU_PERSISTENCE_TYPE", "ldap")
+            ldap_mapping = os.environ.get("GLUU_PERSISTENCE_LDAP_MAPPING", "default")
+
+            # a minimum service stack is having oxTrust, hence check whether entry
+            # for oxTrust exists in LDAP
+            default_search = ("ou=oxtrust,ou=configuration,o=gluu",
+                              "(objectClass=oxTrustConfiguration)")
+
+            if persistence_type == "hybrid":
+                # `cache` and `token` mapping only have base entries
+                search_mapping = {
+                    "default": default_search,
+                    "user": ("inum=60B7,ou=groups,o=gluu", "(objectClass=gluuGroup)"),
+                    "site": ("ou=cache-refresh,o=site", "(ou=people)"),
+                    "cache": ("o=gluu", "(objectClass=gluuOrganization)"),
+                    "token": ("ou=tokens,o=gluu", "(ou=tokens)"),
+                }
+                search = search_mapping[ldap_mapping]
+            else:
+                search = default_search
+
+            with self.conn as conn:
+                conn.search(
+                    search_base=search[0],
+                    search_filter=search[1],
+                    search_scope=SUBTREE,
+                    attributes=['objectClass'],
+                    size_limit=1,
+                )
+                return bool(conn.entries)
+
+        if is_initialized():
+            logger.info("LDAP backend already initialized")
+            return
         self.import_ldif()
 
 
