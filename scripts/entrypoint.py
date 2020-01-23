@@ -644,7 +644,10 @@ class CouchbaseBackend(object):
                 return bool(data["results"])
             return False
 
-        if is_initialized():
+        should_skip = as_boolean(
+            os.environ.get("GLUU_PERSISTENCE_SKIP_EXISTING", True),
+        )
+        if should_skip and is_initialized():
             logger.info("Couchbase backend already initialized")
             return
 
@@ -823,7 +826,10 @@ class LDAPBackend(object):
                 )
                 return bool(conn.entries)
 
-        if is_initialized():
+        should_skip = as_boolean(
+            os.environ.get("GLUU_PERSISTENCE_SKIP_EXISTING", True),
+        )
+        if should_skip and is_initialized():
             logger.info("LDAP backend already initialized")
             return
         self.import_ldif()
