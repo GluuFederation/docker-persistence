@@ -10,24 +10,15 @@
       ["oxStatus"], 
       ["oxApplication"], 
       ["oxDeviceHashCode"], 
-      ["oxDeviceKeyHandle"]
+      ["oxDeviceKeyHandle"],
+      ["oxAuthClientId"],
+      ["oxAuthUserId"]
 
     ],
     "static" : [
       [["LOWER(`uid`)"], "objectClass = \"gluuPerson\""], 
       [["LOWER(`mail`)"], "objectClass = \"gluuPerson\""], 
       [["exp", "oxAuthExpiration"], "del=true"] 
-    ]
-  },
-
-  "gluu_authorization": {
-     "attributes": [
-        ["oxAuthExpiration"],
-        ["del"],
-        ["oxAuthClientId"],
-        ["oxAuthUserId"]
-      ],
-    "static" : [
     ]
   },
 
