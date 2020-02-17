@@ -95,7 +95,7 @@ def get_bucket_mappings():
                 "groups.ldif",
             ],
             "mem_alloc": 300,
-            "document_key_prefix": ["groups_", "people_"],
+            "document_key_prefix": ["groups_", "people_", "authorizations_"],
         },
         "site": {
             "bucket": "gluu_site",
