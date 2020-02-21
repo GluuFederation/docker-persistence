@@ -107,3 +107,5 @@ vault_role_id.txt
 vault_secret_id.txt
 /tmp
 templates/ldif/98-radius.ldif
+couchbase_password
+couchbase.crt

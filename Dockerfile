@@ -123,5 +123,4 @@ COPY static /app/static
 COPY templates /app/templates
 RUN chmod +x /app/scripts/entrypoint.sh
 
-ENTRYPOINT ["tini", "-g", "--"]
-CMD ["/app/scripts/entrypoint.sh"]
+ENTRYPOINT ["tini", "-g", "--", "sh", "/app/scripts/entrypoint.sh"]

@@ -17,7 +17,12 @@ LOGGING_CONFIG = {
             "level": "INFO",
             "propagate": True,
         },
-        "entrypoint": {
+        "initializer": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "migrator": {
             "handlers": ["console"],
             "level": "INFO",
             "propagate": False,
