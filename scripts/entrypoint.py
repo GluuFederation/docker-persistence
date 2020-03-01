@@ -255,7 +255,7 @@ def render_ldif(src, dst, ctx):
 def get_base_ctx(manager):
     passport_oxtrust_config = '''
     "passportUmaClientId":"%(passport_rs_client_id)s",
-    "passportUmaClientKeyId":"",
+    "passportUmaClientKeyId":"%(passport_rs_client_cert_alias)s",
     "passportUmaResourceId":"%(passport_resource_id)s",
     "passportUmaScope":"https://%(hostname)s/oxauth/restv1/uma/scopes/passport_access",
     "passportUmaClientKeyStoreFile":"%(passport_rs_client_jks_fn)s",
@@ -265,7 +265,8 @@ def get_base_ctx(manager):
         "passport_resource_id": manager.config.get("passport_resource_id"),
         "hostname": manager.config.get("hostname"),
         "passport_rs_client_jks_fn": manager.config.get("passport_rs_client_jks_fn"),
-        "passport_rs_client_jks_pass_encoded": manager.secret.get("passport_rs_client_jks_pass_encoded")
+        "passport_rs_client_jks_pass_encoded": manager.secret.get("passport_rs_client_jks_pass_encoded"),
+        "passport_rs_client_cert_alias": manager.config.get("passport_rs_client_cert_alias"),
     }
 
     ctx = {
