@@ -2,6 +2,12 @@
 
 Here you can see an overview of changes between each release.
 
+## Version 4.0.1_07
+
+Released on March 2nd, 2020.
+
+* Fetched Passport RS cert alias.
+
 ## Version 4.0.1_06
 
 Released on December 27th, 2019.
