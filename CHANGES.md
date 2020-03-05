@@ -2,6 +2,19 @@
 
 Here you can see an overview of changes between each release.
 
+## Version 4.1.0_01
+
+Released on March 5th, 2020.
+
+* Conformed to Gluu Server v4.1.
+* Added `GLUU_PERSISTENCE_SKIP_EXISTING` environment variable.
+
+## Version 4.0.1_07
+
+Released on March 2nd, 2020.
+
+* Fetched Passport RS cert alias.
+
 ## Version 4.0.1_06
 
 Released on December 27th, 2019.
