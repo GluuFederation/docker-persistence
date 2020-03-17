@@ -14,7 +14,7 @@ oxTrustAuthenticationMode: simple_password_auth
 gluuPassportEnabled: %(gluuPassportEnabled)s
 gluuRadiusEnabled: %(gluuRadiusEnabled)s
 gluuSamlEnabled: %(gluuSamlEnabled)s
-oxCacheConfiguration: {"cacheProviderType": "%(cache_provider_type)s", "memcachedConfiguration": {"servers":"%(memcached_url)s", "maxOperationQueueLength":100000, "bufferSize":32768, "defaultPutExpiration":60, "connectionFactoryType": "DEFAULT"}, "inMemoryConfiguration": {"defaultPutExpiration":60}, "nativePersistenceConfiguration": {"defaultPutExpiration":60, "defaultCleanupBatchSize": 10000}, "redisConfiguration":{"servers":"%(redis_url)s", "defaultPutExpiration": 60, "redisProviderType": "%(redis_type)s", "password":"%(redis_pw)s"}}
+oxCacheConfiguration: {"cacheProviderType": "%(cache_provider_type)s", "memcachedConfiguration": {"servers":"%(memcached_url)s", "maxOperationQueueLength":100000, "bufferSize":32768, "defaultPutExpiration":60, "connectionFactoryType": "DEFAULT"}, "inMemoryConfiguration": {"defaultPutExpiration":60}, "nativePersistenceConfiguration": {"defaultPutExpiration":60, "defaultCleanupBatchSize": 10000}, "redisConfiguration":{"servers":"%(redis_url)s", "defaultPutExpiration": 60, "redisProviderType": "%(redis_type)s", "password":"%(redis_pw_encoded)s", "decryptedPassword":"%(redis_pw)s", "useSSL": %(redis_use_ssl)s, "sslTrustStoreFilePath": "%(redis_ssl_truststore)s", "sentinelMasterGroupName":"%(redis_sentinel_group)s"}}
 oxTrustStoreConf: {"useJreCertificates":true}
 oxTrustCacheRefreshServerIpAddress: 255.255.255.255
 oxIDPAuthentication: {"type": "auth",

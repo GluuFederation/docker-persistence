@@ -29,6 +29,10 @@ from settings import LOGGING_CONFIG
 GLUU_CACHE_TYPE = os.environ.get("GLUU_CACHE_TYPE", "NATIVE_PERSISTENCE")
 GLUU_REDIS_URL = os.environ.get('GLUU_REDIS_URL', 'localhost:6379')
 GLUU_REDIS_TYPE = os.environ.get('GLUU_REDIS_TYPE', 'STANDALONE')
+GLUU_REDIS_USE_SSL = os.environ.get("GLUU_REDIS_USE_SSL", False)
+GLUU_REDIS_SSL_TRUSTSTORE = os.environ.get("GLUU_REDIS_SSL_TRUSTSTORE", "")
+GLUU_REDIS_SENTINEL_GROUP = os.environ.get("GLUU_REDIS_SENTINEL_GROUP", "")
+
 GLUU_MEMCACHED_URL = os.environ.get('GLUU_MEMCACHED_URL', 'localhost:11211')
 
 GLUU_OXTRUST_CONFIG_GENERATION = os.environ.get("GLUU_OXTRUST_CONFIG_GENERATION", True)
@@ -270,11 +274,24 @@ def get_base_ctx(manager):
         "passport_rs_client_cert_alias": manager.config.get("passport_rs_client_cert_alias"),
     }
 
+    redis_pw = manager.secret.get("redis_pw") or ""
+    redis_pw_encoded = ""
+
+    if redis_pw:
+        redis_pw_encoded = encode_text(
+            redis_pw,
+            manager.secret.get("encoded_salt"),
+        )
+
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
         'redis_url': GLUU_REDIS_URL,
         'redis_type': GLUU_REDIS_TYPE,
-        'redis_pw': manager.secret.get('redis_pw') or "",
+        'redis_pw': redis_pw,
+        'redis_pw_encoded': redis_pw_encoded,
+        "redis_use_ssl": "{}".format(as_boolean(GLUU_REDIS_USE_SSL)).lower(),
+        "redis_ssl_truststore": GLUU_REDIS_SSL_TRUSTSTORE,
+        "redis_sentinel_group": GLUU_REDIS_SENTINEL_GROUP,
         'memcached_url': GLUU_MEMCACHED_URL,
         'ldap_hostname': manager.config.get('ldap_init_host', "localhost"),
         'ldaps_port': manager.config.get('ldap_init_port', 1636),
