@@ -98,7 +98,7 @@
     "umaIssuer":"https://%(hostname)s",
 
     "scimUmaClientId":"%(scim_rs_client_id)s",
-    "scimUmaClientKeyId":"",
+    "scimUmaClientKeyId":"%(scim_rs_client_cert_alias)s",
     "scimUmaResourceId":"%(scim_resource_oxid)s",
     "scimUmaScope":"https://%(hostname)s/oxauth/restv1/uma/scopes/scim_access",
     "scimUmaClientKeyStoreFile":"%(scim_rs_client_jks_fn)s",
@@ -107,7 +107,7 @@
     %(passport_oxtrust_config)s
 
     "apiUmaClientId":"%(oxtrust_resource_server_client_id)s",
-    "apiUmaClientKeyId":"",
+    "apiUmaClientKeyId":"%(api_rs_client_cert_alias)s",
     "apiUmaResourceId":"%(oxtrust_resource_id)s",
     "apiUmaScope":"https://%(hostname)s/oxauth/restv1/uma/scopes/oxtrust-api-read",
     "apiUmaClientKeyStoreFile":"%(api_rs_client_jks_fn)s",
