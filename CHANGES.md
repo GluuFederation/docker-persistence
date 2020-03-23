@@ -2,6 +2,13 @@
 
 Here you can see an overview of changes between each release.
 
+## Version 4.0.1_08
+
+Released on March 24th, 2020.
+
+* Fetched SCIM RS cert alias.
+* Fetched API RS cert alias.
+
 ## Version 4.0.1_07
 
 Released on March 2nd, 2020.
