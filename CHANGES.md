@@ -9,6 +9,13 @@ Released on March 5th, 2020.
 * Conformed to Gluu Server v4.1.
 * Added `GLUU_PERSISTENCE_SKIP_EXISTING` environment variable.
 
+## Version 4.0.1_08
+
+Released on March 24th, 2020.
+
+* Fetched SCIM RS cert alias.
+* Fetched API RS cert alias.
+
 ## Version 4.0.1_07
 
 Released on March 2nd, 2020.

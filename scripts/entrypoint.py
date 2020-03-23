@@ -315,11 +315,13 @@ def get_base_ctx(manager):
         "encoded_oxtrust_admin_password": manager.secret.get('encoded_oxtrust_admin_password'),
         'scim_rs_client_id': manager.config.get('scim_rs_client_id'),
         'scim_rs_client_base64_jwks': manager.secret.get('scim_rs_client_base64_jwks'),
+        'scim_rs_client_cert_alias': manager.config.get("scim_rs_client_cert_alias"),
         'scim_rp_client_id': manager.config.get('scim_rp_client_id'),
         'scim_rp_client_base64_jwks': manager.secret.get('scim_rp_client_base64_jwks'),
         'scim_resource_oxid': manager.config.get('scim_resource_oxid'),
         'passport_rp_ii_client_id': manager.config.get("passport_rp_ii_client_id"),
         'api_rs_client_base64_jwks': manager.secret.get("api_rs_client_base64_jwks"),
+        'api_rs_client_cert_alias': manager.config.get("api_rs_client_cert_alias"),
         'api_rp_client_base64_jwks': manager.secret.get("api_rp_client_base64_jwks"),
 
         'admin_email': manager.config.get('admin_email'),
