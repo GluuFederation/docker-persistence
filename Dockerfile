@@ -6,8 +6,7 @@ FROM alpine:3.9
 
 RUN apk update \
     && apk add --no-cache py-pip \
-    && apk add --no-cache --virtual build-deps git wget \
-    && apk add --no-cache curl
+    && apk add --no-cache --virtual build-deps git wget curl
 
 # ====
 # Tini
