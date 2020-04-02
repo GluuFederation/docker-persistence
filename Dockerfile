@@ -6,7 +6,7 @@ FROM alpine:3.9
 
 RUN apk update \
     && apk add --no-cache py-pip curl \
-    && apk add --no-cache --virtual build-deps git wget 
+    && apk add --no-cache --virtual build-deps git wget
 
 # ====
 # Tini
@@ -115,7 +115,7 @@ LABEL name="Persistence" \
     maintainer="Gluu Inc. <support@gluu.org>" \
     vendor="Gluu Federation" \
     version="4.1.1" \
-    release="01" \
+    release="02" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"
 
