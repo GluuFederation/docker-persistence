@@ -5,7 +5,9 @@ FROM alpine:3.9
 # ===============
 
 RUN apk update \
-    && apk add --no-cache py-pip curl \
+    && apk add --no-cache py3-pip curl \
+    && ln -sf /usr/bin/python3 /usr/bin/python \
+    && ln -sf /usr/bin/pip3 /usr/bin/pip \
     && apk add --no-cache --virtual build-deps git wget
 
 # ====
@@ -114,8 +116,8 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
 LABEL name="Persistence" \
     maintainer="Gluu Inc. <support@gluu.org>" \
     vendor="Gluu Federation" \
-    version="4.1.1" \
-    release="02" \
+    version="4.2.0" \
+    release="dev" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"
 
