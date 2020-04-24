@@ -50,6 +50,10 @@ GLUU_SAML_ENABLED = os.environ.get("GLUU_SAML_ENABLED", False)
 GLUU_SCIM_ENABLED = os.environ.get("GLUU_SCIM_ENABLED", False)
 GLUU_SCIM_TEST_MODE = os.environ.get("GLUU_SCIM_TEST_MODE", False)
 
+GLUU_DOCUMENT_STORE_TYPE = os.environ.get("GLUU_DOCUMENT_STORE_TYPE", "LOCAL")
+GLUU_JCA_RMI_URL = os.environ.get("GLUU_JCA_RMI_URL", "http://localhost:8080/rmi")
+GLUU_JCA_USERNAME = os.environ.get("GLUU_JCA_USERNAME", "admin")
+
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("entrypoint")
 
@@ -283,6 +287,14 @@ def get_base_ctx(manager):
             manager.secret.get("encoded_salt"),
         )
 
+    jca_pw = manager.secret.get("jca_pw") or "admin"
+    jca_pw_encoded = ""
+    if jca_pw:
+        jca_pw_encoded = encode_text(
+            jca_pw,
+            manager.secret.get("encoded_salt"),
+        )
+
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
         'redis_url': GLUU_REDIS_URL,
@@ -293,6 +305,13 @@ def get_base_ctx(manager):
         "redis_ssl_truststore": GLUU_REDIS_SSL_TRUSTSTORE,
         "redis_sentinel_group": GLUU_REDIS_SENTINEL_GROUP,
         'memcached_url': GLUU_MEMCACHED_URL,
+
+        "document_store_type": GLUU_DOCUMENT_STORE_TYPE,
+        "jca_server_url": GLUU_JCA_RMI_URL,
+        "jca_username": GLUU_JCA_USERNAME,
+        "jca_pw": jca_pw,
+        "jca_pw_encoded": jca_pw_encoded,
+
         'ldap_hostname': manager.config.get('ldap_init_host', "localhost"),
         'ldaps_port': manager.config.get('ldap_init_port', 1636),
         'ldap_binddn': manager.config.get('ldap_binddn'),
