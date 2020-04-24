@@ -53,6 +53,7 @@ GLUU_SCIM_TEST_MODE = os.environ.get("GLUU_SCIM_TEST_MODE", False)
 GLUU_DOCUMENT_STORE_TYPE = os.environ.get("GLUU_DOCUMENT_STORE_TYPE", "LOCAL")
 GLUU_JCA_RMI_URL = os.environ.get("GLUU_JCA_RMI_URL", "http://localhost:8080/rmi")
 GLUU_JCA_USERNAME = os.environ.get("GLUU_JCA_USERNAME", "admin")
+GLUU_JCA_PASSWORD_FILE = os.environ.get("GLUU_JCA_PASSWORD_FILE", "/etc/gluu/conf/jca_password")
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("entrypoint")
@@ -287,13 +288,15 @@ def get_base_ctx(manager):
             manager.secret.get("encoded_salt"),
         )
 
-    jca_pw = manager.secret.get("jca_pw") or "admin"
-    jca_pw_encoded = ""
-    if jca_pw:
-        jca_pw_encoded = encode_text(
-            jca_pw,
-            manager.secret.get("encoded_salt"),
-        )
+    jca_pw = "admin"
+    if os.path.isfile(GLUU_JCA_PASSWORD_FILE):
+        with open(GLUU_JCA_PASSWORD_FILE) as f:
+            jca_pw = f.read().strip()
+
+    jca_pw_encoded = encode_text(
+        jca_pw,
+        manager.secret.get("encoded_salt"),
+    )
 
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
