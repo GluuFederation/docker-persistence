@@ -60,6 +60,8 @@ The following environment variables are supported by the container:
 - `GLUU_PASSPORT_ENABLED`: Enable Passport-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
 - `GLUU_RADIUS_ENABLED`: Enable Radius-related features; UI menu, etc. (default to `false`).
 - `GLUU_SAML_ENABLED`: Enable SAML-related features; UI menu, etc. (default to `false`).
+- `GLUU_DOCUMENT_STORE_TYPE`: Document store type (one of `LOCAL` or `JCA`; default to `LOCAL`).
+- `GLUU_JCA_RMI_URL`: URL to remote repository access (default to `http://localhost:8080/rmi`).
 
 ## Initializing Data
 
