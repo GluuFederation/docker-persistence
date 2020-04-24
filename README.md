@@ -59,7 +59,6 @@ The following environment variables are supported by the container:
 - `GLUU_CASA_ENABLED`: Enable Casa-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
 - `GLUU_PASSPORT_ENABLED`: Enable Passport-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
 - `GLUU_RADIUS_ENABLED`: Enable Radius-related features; UI menu, etc. (default to `false`).
-- `GLUU_PASSPORT_ENABLED`: Enable Passport-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
 - `GLUU_SAML_ENABLED`: Enable SAML-related features; UI menu, etc. (default to `false`).
 
 ## Initializing Data
