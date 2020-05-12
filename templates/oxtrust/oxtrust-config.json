@@ -104,8 +104,6 @@
     "scimUmaClientKeyStoreFile":"%(scim_rs_client_jks_fn)s",
     "scimUmaClientKeyStorePassword":"%(scim_rs_client_jks_pass_encoded)s",
 
-    %(passport_oxtrust_config)s
-
     "apiUmaClientId":"%(oxtrust_resource_server_client_id)s",
     "apiUmaClientKeyId":"%(api_rs_client_cert_alias)s",
     "apiUmaResourceId":"%(oxtrust_resource_id)s",
@@ -139,6 +137,14 @@
     },
     "cleanServiceInterval":300,
     "loggingLevel": "INFO",
+    "loggingLayout": "text",
     "passwordResetRequestExpirationTime":600,
-    "useLocalCache":true
+    "useLocalCache":true,
+
+    "passportUmaClientId":"%(passport_rs_client_id)s",
+    "passportUmaClientKeyId":"%(passport_rs_client_cert_alias)s",
+    "passportUmaResourceId":"%(passport_resource_id)s",
+    "passportUmaScope":"https://%(hostname)s/oxauth/restv1/uma/scopes/passport_access",
+    "passportUmaClientKeyStoreFile":"%(passport_rs_client_jks_fn)s",
+    "passportUmaClientKeyStorePassword":"%(passport_rs_client_jks_pass_encoded)s"
 }

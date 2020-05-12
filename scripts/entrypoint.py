@@ -50,6 +50,11 @@ GLUU_SAML_ENABLED = os.environ.get("GLUU_SAML_ENABLED", False)
 GLUU_SCIM_ENABLED = os.environ.get("GLUU_SCIM_ENABLED", False)
 GLUU_SCIM_TEST_MODE = os.environ.get("GLUU_SCIM_TEST_MODE", False)
 
+GLUU_DOCUMENT_STORE_TYPE = os.environ.get("GLUU_DOCUMENT_STORE_TYPE", "LOCAL")
+GLUU_JCA_RMI_URL = os.environ.get("GLUU_JCA_RMI_URL", "http://localhost:8080/rmi")
+GLUU_JCA_USERNAME = os.environ.get("GLUU_JCA_USERNAME", "admin")
+GLUU_JCA_PASSWORD_FILE = os.environ.get("GLUU_JCA_PASSWORD_FILE", "/etc/gluu/conf/jca_password")
+
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("entrypoint")
 
@@ -258,22 +263,6 @@ def render_ldif(src, dst, ctx):
 
 
 def get_base_ctx(manager):
-    passport_oxtrust_config = '''
-    "passportUmaClientId":"%(passport_rs_client_id)s",
-    "passportUmaClientKeyId":"%(passport_rs_client_cert_alias)s",
-    "passportUmaResourceId":"%(passport_resource_id)s",
-    "passportUmaScope":"https://%(hostname)s/oxauth/restv1/uma/scopes/passport_access",
-    "passportUmaClientKeyStoreFile":"%(passport_rs_client_jks_fn)s",
-    "passportUmaClientKeyStorePassword":"%(passport_rs_client_jks_pass_encoded)s",
-''' % {
-        "passport_rs_client_id": manager.config.get("passport_rs_client_id"),
-        "passport_resource_id": manager.config.get("passport_resource_id"),
-        "hostname": manager.config.get("hostname"),
-        "passport_rs_client_jks_fn": manager.config.get("passport_rs_client_jks_fn"),
-        "passport_rs_client_jks_pass_encoded": manager.secret.get("passport_rs_client_jks_pass_encoded"),
-        "passport_rs_client_cert_alias": manager.config.get("passport_rs_client_cert_alias"),
-    }
-
     redis_pw = manager.secret.get("redis_pw") or ""
     redis_pw_encoded = ""
 
@@ -282,6 +271,16 @@ def get_base_ctx(manager):
             redis_pw,
             manager.secret.get("encoded_salt"),
         ).decode()
+
+    jca_pw = "admin"
+    if os.path.isfile(GLUU_JCA_PASSWORD_FILE):
+        with open(GLUU_JCA_PASSWORD_FILE) as f:
+            jca_pw = f.read().strip()
+
+    jca_pw_encoded = encode_text(
+        jca_pw,
+        manager.secret.get("encoded_salt"),
+    )
 
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
@@ -293,6 +292,13 @@ def get_base_ctx(manager):
         "redis_ssl_truststore": GLUU_REDIS_SSL_TRUSTSTORE,
         "redis_sentinel_group": GLUU_REDIS_SENTINEL_GROUP,
         'memcached_url': GLUU_MEMCACHED_URL,
+
+        "document_store_type": GLUU_DOCUMENT_STORE_TYPE,
+        "jca_server_url": GLUU_JCA_RMI_URL,
+        "jca_username": GLUU_JCA_USERNAME,
+        "jca_pw": jca_pw,
+        "jca_pw_encoded": jca_pw_encoded,
+
         'ldap_hostname': manager.config.get('ldap_init_host', "localhost"),
         'ldaps_port': manager.config.get('ldap_init_port', 1636),
         'ldap_binddn': manager.config.get('ldap_binddn'),
@@ -307,6 +313,7 @@ def get_base_ctx(manager):
         'oxauth_openid_key_base64': manager.secret.get('oxauth_openid_key_base64'),
         'passport_rs_client_id': manager.config.get('passport_rs_client_id'),
         'passport_rs_client_base64_jwks': manager.secret.get('passport_rs_client_base64_jwks'),
+        'passport_rs_client_cert_alias': manager.config.get('passport_rs_client_cert_alias'),
         'passport_rp_client_id': manager.config.get('passport_rp_client_id'),
         'passport_rp_client_base64_jwks': manager.secret.get('passport_rp_client_base64_jwks'),
         "passport_rp_client_jks_fn": manager.config.get("passport_rp_client_jks_fn"),
@@ -343,7 +350,6 @@ def get_base_ctx(manager):
         "oxtrust_resource_server_client_id": manager.config.get("oxtrust_resource_server_client_id"),
         "oxtrust_resource_id": manager.config.get("oxtrust_resource_id"),
         "passport_resource_id": manager.config.get("passport_resource_id"),
-        "passport_oxtrust_config": passport_oxtrust_config,
 
         "gluu_radius_client_id": manager.config.get("gluu_radius_client_id"),
         "gluu_ro_encoded_pw": manager.secret.get("gluu_ro_encoded_pw"),

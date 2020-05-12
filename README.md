@@ -4,7 +4,7 @@ Persistence is a special container to load initial data for LDAP or Couchbase.
 
 ## Versions
 
-- Stable: `gluufederation/persistence:4.1.1_02`
+- Stable: `gluufederation/persistence:4.1.1_03`
 - Unstable: `gluufederation/persistence:4.1.1_dev`
 
 Refer to [Changelog](./CHANGES.md) for details on new features, bug fixes, or older releases.
@@ -59,8 +59,9 @@ The following environment variables are supported by the container:
 - `GLUU_CASA_ENABLED`: Enable Casa-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
 - `GLUU_PASSPORT_ENABLED`: Enable Passport-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
 - `GLUU_RADIUS_ENABLED`: Enable Radius-related features; UI menu, etc. (default to `false`).
-- `GLUU_PASSPORT_ENABLED`: Enable Passport-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
 - `GLUU_SAML_ENABLED`: Enable SAML-related features; UI menu, etc. (default to `false`).
+- `GLUU_DOCUMENT_STORE_TYPE`: Document store type (one of `LOCAL` or `JCA`; default to `LOCAL`).
+- `GLUU_JCA_RMI_URL`: URL to remote repository access (default to `http://localhost:8080/rmi`).
 
 ## Initializing Data
 
@@ -100,7 +101,7 @@ docker run --rm \
     -e GLUU_LDAP_URL=ldap:1636 \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.1.1_02
+    gluufederation/persistence:4.1.1_03
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -136,7 +137,7 @@ docker run --rm \
     -v /path/to/couchbase_password:/etc/gluu/conf/couchbase_password \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.1.1_02
+    gluufederation/persistence:4.1.1_03
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -200,5 +201,5 @@ Hybrid is a mix of LDAP and Couchbase persistence backend. To initialize data fo
         -v /path/to/couchbase_password:/etc/gluu/conf/couchbase_password \
         -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
         -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-        gluufederation/persistence:4.1.1_02
+        gluufederation/persistence:4.1.1_03
     ```

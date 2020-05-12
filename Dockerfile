@@ -6,9 +6,9 @@ FROM alpine:3.9
 
 RUN apk update \
     && apk add --no-cache py3-pip curl \
+    && apk add --no-cache --virtual build-deps git wget \
     && ln -sf /usr/bin/python3 /usr/bin/python \
-    && ln -sf /usr/bin/pip3 /usr/bin/pip \
-    && apk add --no-cache --virtual build-deps git wget
+    && ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # ====
 # Tini
