@@ -5,17 +5,17 @@ FROM alpine:3.9
 # ===============
 
 RUN apk update \
-    && apk add --no-cache py3-pip curl \
+    && apk add --no-cache py3-pip curl tini \
     && apk add --no-cache --virtual build-deps git wget \
     && ln -sf /usr/bin/python3 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
 
 # ====
-# Tini
-# ====
+# # Tini
+# # ====
 
-RUN wget -q https://github.com/krallin/tini/releases/download/v0.18.0/tini-static -O /usr/bin/tini \
-    && chmod +x /usr/bin/tini
+# RUN wget -q https://github.com/krallin/tini/releases/download/v0.18.0/tini-static -O /usr/bin/tini \
+#     && chmod +x /usr/bin/tini
 
 # ======
 # Python
