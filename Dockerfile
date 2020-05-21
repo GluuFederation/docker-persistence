@@ -1,4 +1,4 @@
-FROM alpine:3.9
+FROM alpine:3.11
 
 # ===============
 # Alpine packages
@@ -6,24 +6,15 @@ FROM alpine:3.9
 
 RUN apk update \
     && apk add --no-cache py3-pip curl tini \
-    && apk add --no-cache --virtual build-deps git wget \
-    && ln -sf /usr/bin/python3 /usr/bin/python \
-    && ln -sf /usr/bin/pip3 /usr/bin/pip
-
-# ====
-# # Tini
-# # ====
-
-# RUN wget -q https://github.com/krallin/tini/releases/download/v0.18.0/tini-static -O /usr/bin/tini \
-#     && chmod +x /usr/bin/tini
+    && apk add --no-cache --virtual build-deps git wget
 
 # ======
 # Python
 # ======
 
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install -U pip \
-    && pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip3 install -U pip \
+    && pip3 install --no-cache-dir -r /tmp/requirements.txt
 
 # =======
 # Cleanup
