@@ -280,7 +280,7 @@ def get_base_ctx(manager):
     jca_pw_encoded = encode_text(
         jca_pw,
         manager.secret.get("encoded_salt"),
-    )
+    ).decode()
 
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
