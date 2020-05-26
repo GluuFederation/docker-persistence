@@ -63,7 +63,10 @@ class PersonAuthentication(PersonAuthenticationType):
 
     def getApiVersion(self):
         return 11
-
+        
+    def getAuthenticationMethodClaims(self, requestParameters):
+        return None
+        
     def isValidAuthenticationMethod(self, usageType, configurationAttributes):
         return True
 
@@ -146,8 +149,8 @@ class PersonAuthentication(PersonAuthenticationType):
         elif (step == 2):
             print "U2F. Prepare for step 2"
 
-            session_id = CdiUtil.bean(SessionIdService).getSessionIdFromCookie()
-            if StringHelper.isEmpty(session_id):
+            session = CdiUtil.bean(SessionIdService).getSessionId()
+            if session == None:
                 print "U2F. Prepare for step 2. Failed to determine session_id"
                 return False
 
@@ -173,7 +176,7 @@ class PersonAuthentication(PersonAuthenticationType):
 
                 try:
                     authenticationRequestService = FidoU2fClientFactory.instance().createAuthenticationRequestService(self.metaDataConfiguration)
-                    authenticationRequest = authenticationRequestService.startAuthentication(user.getUserId(), None, u2f_application_id, session_id)
+                    authenticationRequest = authenticationRequestService.startAuthentication(user.getUserId(), None, u2f_application_id, session.getId())
                 except ClientResponseFailure, ex:
                     if (ex.getResponse().getResponseStatus() != Response.Status.NOT_FOUND):
                         print "U2F. Prepare for step 2. Failed to start authentication workflow. Exception:", sys.exc_info()[1]
@@ -181,7 +184,7 @@ class PersonAuthentication(PersonAuthenticationType):
             else:
                 print "U2F. Prepare for step 2. Call FIDO U2F in order to start registration workflow"
                 registrationRequestService = FidoU2fClientFactory.instance().createRegistrationRequestService(self.metaDataConfiguration)
-                registrationRequest = registrationRequestService.startRegistration(user.getUserId(), u2f_application_id, session_id)
+                registrationRequest = registrationRequestService.startRegistration(user.getUserId(), u2f_application_id, session.getId())
 
             identity.setWorkingParameter("fido_u2f_authentication_request", ServerUtil.asJson(authenticationRequest))
             identity.setWorkingParameter("fido_u2f_registration_request", ServerUtil.asJson(registrationRequest))
@@ -205,6 +208,13 @@ class PersonAuthentication(PersonAuthenticationType):
             return "/auth/u2f/login.xhtml"
 
         return ""
+
+    def getNextStep(self, configurationAttributes, requestParameters, step):
+        return -1
+
+    def getLogoutExternalUrl(self, configurationAttributes, requestParameters):
+        print "Get external logout URL call"
+        return None
 
     def logout(self, configurationAttributes, requestParameters):
         return True

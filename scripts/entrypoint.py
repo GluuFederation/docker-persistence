@@ -93,6 +93,7 @@ def get_bucket_mappings():
                 "gluu_radius_clients.ldif",
                 "passport_clients.ldif",
                 "scripts_casa.ldif",
+                "fido2.ldif",
             ],
             "mem_alloc": 100,
             "document_key_prefix": [],
@@ -481,6 +482,20 @@ def merge_passport_ctx(ctx):
     return ctx
 
 
+def merge_fido2_ctx(ctx):
+    basedir = '/app/templates/fido2'
+    file_mappings = {
+        'fido2_dynamic_conf_base64': 'fido2-dynamic-conf.json',
+        'fido2_static_conf_base64': 'fido2-static-conf.json',
+    }
+
+    for key, file_ in file_mappings.items():
+        file_path = os.path.join(basedir, file_)
+        with open(file_path) as fp:
+            ctx[key] = generate_base64_contents(fp.read() % ctx)
+    return ctx
+
+
 def prepare_template_ctx(manager):
     ctx = get_base_ctx(manager)
     ctx = merge_extension_ctx(ctx)
@@ -489,6 +504,7 @@ def prepare_template_ctx(manager):
     ctx = merge_oxtrust_ctx(ctx)
     ctx = merge_oxidp_ctx(ctx)
     ctx = merge_passport_ctx(ctx)
+    ctx = merge_fido2_ctx(ctx)
     return ctx
 
 
@@ -762,6 +778,7 @@ class LDAPBackend(object):
                 "gluu_radius_clients.ldif",
                 "passport_clients.ldif",
                 "scripts_casa.ldif",
+                "fido2.ldif",
             ],
             "user": [
                 "people.ldif",

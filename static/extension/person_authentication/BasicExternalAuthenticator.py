@@ -16,7 +16,7 @@ class PersonAuthentication(PersonAuthenticationType):
     def __init__(self, currentTimeMillis):
         self.currentTimeMillis = currentTimeMillis
 
-    def init(self, customScript, configurationAttributes):
+    def init(self, customScript,  configurationAttributes):
         print "Basic. Initialization"
         print "Basic. Initialized successfully"
         return True   
@@ -25,7 +25,10 @@ class PersonAuthentication(PersonAuthenticationType):
         print "Basic. Destroy"
         print "Basic. Destroyed successfully"
         return True
-
+        
+    def getAuthenticationMethodClaims(self, requestParameters):
+        return None
+        
     def getApiVersion(self):
         return 11
 
@@ -73,6 +76,13 @@ class PersonAuthentication(PersonAuthenticationType):
 
     def getPageForStep(self, configurationAttributes, step):
         return ""
+
+    def getNextStep(self, configurationAttributes, requestParameters, step):
+        return -1
+
+    def getLogoutExternalUrl(self, configurationAttributes, requestParameters):
+        print "Get external logout URL call"
+        return None
 
     def logout(self, configurationAttributes, requestParameters):
         return True
