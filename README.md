@@ -4,7 +4,7 @@ Persistence is a special container to load initial data for LDAP or Couchbase.
 
 ## Versions
 
-- Stable: `gluufederation/persistence:4.1.1_03`
+- Stable: `gluufederation/persistence:4.1.1_04`
 - Unstable: `gluufederation/persistence:4.1.1_dev`
 
 Refer to [Changelog](./CHANGES.md) for details on new features, bug fixes, or older releases.
@@ -101,7 +101,7 @@ docker run --rm \
     -e GLUU_LDAP_URL=ldap:1636 \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.1.1_03
+    gluufederation/persistence:4.1.1_04
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -137,7 +137,7 @@ docker run --rm \
     -v /path/to/couchbase_password:/etc/gluu/conf/couchbase_password \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.1.1_03
+    gluufederation/persistence:4.1.1_04
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -201,5 +201,5 @@ Hybrid is a mix of LDAP and Couchbase persistence backend. To initialize data fo
         -v /path/to/couchbase_password:/etc/gluu/conf/couchbase_password \
         -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
         -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-        gluufederation/persistence:4.1.1_03
+        gluufederation/persistence:4.1.1_04
     ```
