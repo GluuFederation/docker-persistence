@@ -579,7 +579,8 @@ class CouchbaseBackend(object):
         buckets = [mapping["bucket"] for _, mapping in bucket_mappings.items()]
 
         with open("/app/static/couchbase_index.json") as f:
-            indexes = json.loads(f.read())
+            txt = f.read().replace("!bucket_prefix!", "gluu")
+            indexes = json.loads(txt)
 
         for bucket in buckets:
             if bucket not in indexes:
