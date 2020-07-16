@@ -4,8 +4,8 @@ Persistence is a special container to load initial data for LDAP or Couchbase.
 
 ## Versions
 
-- Stable: `gluufederation/persistence:4.1.1_03`
-- Unstable: `gluufederation/persistence:4.1.1_dev`
+- Stable: `N/A`
+- Unstable: `gluufederation/persistence:4.2.0_dev`
 
 Refer to [Changelog](./CHANGES.md) for details on new features, bug fixes, or older releases.
 
@@ -84,7 +84,7 @@ docker run -d \
     -v /path/to/opendj/backup:/opt/opendj/bak \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/wrends:4.1.1_01
+    gluufederation/wrends:4.2.0_dev
 ```
 
 Run the following command to initialize data and save it to LDAP:
@@ -101,7 +101,7 @@ docker run --rm \
     -e GLUU_LDAP_URL=ldap:1636 \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.1.1_03
+    gluufederation/persistence:4.2.0_dev
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -137,7 +137,7 @@ docker run --rm \
     -v /path/to/couchbase_password:/etc/gluu/conf/couchbase_password \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.1.1_03
+    gluufederation/persistence:4.2.0_dev
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -163,7 +163,7 @@ Hybrid is a mix of LDAP and Couchbase persistence backend. To initialize data fo
         -v /path/to/opendj/backup:/opt/opendj/bak \
         -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
         -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-        gluufederation/wrends:4.1.1_01
+        gluufederation/wrends:4.2.0_dev
     ```
 
 1.  Prepare Couchbase cluster.
@@ -201,5 +201,5 @@ Hybrid is a mix of LDAP and Couchbase persistence backend. To initialize data fo
         -v /path/to/couchbase_password:/etc/gluu/conf/couchbase_password \
         -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
         -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-        gluufederation/persistence:4.1.1_03
+        gluufederation/persistence:4.2.0_dev
     ```
