@@ -94,7 +94,7 @@ def get_bucket_mappings():
                 "o_metric.ldif",
                 "gluu_radius_clients.ldif",
                 "passport_clients.ldif",
-                # "casa.ldif",
+                "casa.ldif",
                 "scripts_casa.ldif",
             ],
             "mem_alloc": 100,
@@ -404,8 +404,8 @@ def get_base_ctx(manager):
             manager.secret.get("encoded_salt"),
         ).decode(),
         "casa_enable_script": str(as_boolean(GLUU_CASA_ENABLED)).lower(),
-        # "oxd_hostname": oxd_hostname,
-        # "oxd_port": oxd_port,
+        "oxd_hostname": "localhost",
+        "oxd_port": "8443",
     }
     return ctx
 
@@ -794,7 +794,7 @@ class LDAPBackend(object):
                 "o_metric.ldif",
                 "gluu_radius_clients.ldif",
                 "passport_clients.ldif",
-                # "casa.ldif",
+                "casa.ldif",
                 "scripts_casa.ldif",
             ],
             "user": [
