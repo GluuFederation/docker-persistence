@@ -1,10 +1,5 @@
 #!/bin/sh
 set -e
 
-if [ -f /etc/redhat-release ]; then
-    source scl_source enable python27 && python /app/scripts/wait.py
-    source scl_source enable python27 && python /app/scripts/entrypoint.py
-else
-    python /app/scripts/wait.py
-    python /app/scripts/entrypoint.py
-fi
+python3 /app/scripts/wait.py
+exec python3 /app/scripts/entrypoint.py

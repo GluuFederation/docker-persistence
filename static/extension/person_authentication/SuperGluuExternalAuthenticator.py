@@ -12,12 +12,12 @@ from org.gluu.service.cdi.util import CdiUtil
 from org.gluu.oxauth.security import Identity
 from org.gluu.model.custom.script.type.auth import PersonAuthenticationType
 from org.gluu.oxauth.model.config import ConfigurationFactory
-from org.gluu.oxauth.service import UserService, AuthenticationService, SessionIdService
+from org.gluu.oxauth.service import AuthenticationService, SessionIdService
 from org.gluu.oxauth.service.fido.u2f import DeviceRegistrationService
 from org.gluu.oxauth.service.net import HttpService
 from org.gluu.oxauth.util import ServerUtil
 from org.gluu.util import StringHelper
-from org.gluu.oxauth.service import EncryptionService
+from org.gluu.oxauth.service.common import EncryptionService, UserService
 from org.gluu.service import MailService
 from org.gluu.oxauth.service.push.sns import PushPlatform, PushSnsService 
 from org.gluu.oxnotify.client import NotifyClientFactory 
@@ -43,7 +43,7 @@ class PersonAuthentication(PersonAuthenticationType):
     def __init__(self, currentTimeMillis):
         self.currentTimeMillis = currentTimeMillis
 
-    def init(self, configurationAttributes):
+    def init(self, customScript, configurationAttributes):
         print "Super-Gluu. Initialization"
 
         if not configurationAttributes.containsKey("authentication_mode"):
@@ -131,7 +131,7 @@ class PersonAuthentication(PersonAuthenticationType):
             
             # Validate license
             try:
-                self.license_content = LicenseValidator.validate(license["public-key"], license["public-password"], license["license-password"], license["license"],
+                self.license_content = LicenseValidator.validate(license["public_key"], license["public_password"], license["license_password"], license["license"],
                                           Product.SUPER_GLUU, Date())
                 self.valid_license = self.license_content.isValid()
             except:
@@ -154,8 +154,11 @@ class PersonAuthentication(PersonAuthenticationType):
         return True
 
     def getApiVersion(self):
-        return 2
-
+        return 11
+        
+    def getAuthenticationMethodClaims(self, requestParameters):
+        return None
+        
     def isValidAuthenticationMethod(self, usageType, configurationAttributes):
         return True
 
@@ -345,15 +348,15 @@ class PersonAuthentication(PersonAuthenticationType):
         if step == 1:
             print "Super-Gluu. Prepare for step 1"
             if self.oneStep:
-                session_id = CdiUtil.bean(SessionIdService).getSessionIdFromCookie()
-                if StringHelper.isEmpty(session_id):
+                session = CdiUtil.bean(SessionIdService).getSessionId()
+                if session == None:
                     print "Super-Gluu. Prepare for step 2. Failed to determine session_id"
                     return False
-            
+
                 issuer = CdiUtil.bean(ConfigurationFactory).getConfiguration().getIssuer()
                 super_gluu_request_dictionary = {'app': client_redirect_uri,
                                    'issuer': issuer,
-                                   'state': session_id,
+                                   'state': session.getId(),
                                    'licensed': self.valid_license,
                                    'created': DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now().withNano(0))}
 
@@ -384,8 +387,8 @@ class PersonAuthentication(PersonAuthenticationType):
                    print "Super-Gluu. Prepare for step 2. Request was generated already"
                    return True
             
-            session_id = CdiUtil.bean(SessionIdService).getSessionIdFromCookie()
-            if StringHelper.isEmpty(session_id):
+            session = CdiUtil.bean(SessionIdService).getSessionId()
+            if session == None:
                 print "Super-Gluu. Prepare for step 2. Failed to determine session_id"
                 return False
 
@@ -401,7 +404,7 @@ class PersonAuthentication(PersonAuthenticationType):
                                'app': client_redirect_uri,
                                'issuer': issuer,
                                'method': auth_method,
-                               'state': session_id,
+                               'state': session.getId(),
                                'licensed': self.valid_license,
                                'created': DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.now().withNano(0))}
 
@@ -470,6 +473,10 @@ class PersonAuthentication(PersonAuthenticationType):
                     return "/auth/super-gluu/login.xhtml"
 
         return ""
+
+    def getLogoutExternalUrl(self, configurationAttributes, requestParameters):
+        print "Get external logout URL call"
+        return None
 
     def logout(self, configurationAttributes, requestParameters):
         return True
@@ -815,7 +822,7 @@ class PersonAuthentication(PersonAuthenticationType):
                             pushSnsService = CdiUtil.bean(PushSnsService)
                             targetEndpointArn = self.getTargetEndpointArn(deviceRegistrationService, pushSnsService, PushPlatform.APNS, user, u2f_device)
                             if targetEndpointArn == None:
-                                return
+                            	return
 
                             send_notification = True
     
@@ -868,7 +875,7 @@ class PersonAuthentication(PersonAuthenticationType):
                             pushSnsService = CdiUtil.bean(PushSnsService)
                             targetEndpointArn = self.getTargetEndpointArn(deviceRegistrationService, pushSnsService, PushPlatform.GCM, user, u2f_device)
                             if targetEndpointArn == None:
-                                return
+                            	return
 
                             send_notification = True
     
@@ -944,8 +951,8 @@ class PersonAuthentication(PersonAuthenticationType):
                 targetEndpointArn = registerDeviceResponse.getEndpointArn()
         
         if StringHelper.isEmpty(targetEndpointArn):
-            print "Super-Gluu. Failed to get endpoint ARN for user: '%s'" % user.getUserId()
-            return None
+	        print "Super-Gluu. Failed to get endpoint ARN for user: '%s'" % user.getUserId()
+        	return None
 
         print "Super-Gluu. Get target endpoint ARN. Create target endpoint ARN '%s' for user: '%s'" % (targetEndpointArn, user.getUserId())
         

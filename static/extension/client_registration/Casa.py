@@ -15,7 +15,7 @@ class ClientRegistration(ClientRegistrationType):
     def __init__(self, currentTimeMillis):
         self.currentTimeMillis = currentTimeMillis
 
-    def init(self, configurationAttributes):
+    def init(self, customScript, configurationAttributes):
         print "Casa client registration. Initialization"
         self.clientRedirectUrisSet = self.prepareClientRedirectUris(configurationAttributes)
         print "Casa client registration. Initialized successfully"
@@ -51,6 +51,7 @@ class ClientRegistration(ClientRegistrationType):
         cal=GregorianCalendar()
         cal.add(1,10)
         client.setClientSecretExpiresAt(Date(cal.getTimeInMillis()))
+        client.setTrustedClient(True)
         return True
 
     # Update client entry before persistent it
@@ -63,7 +64,7 @@ class ClientRegistration(ClientRegistrationType):
         return True
 
     def getApiVersion(self):
-        return 2
+        return 11
 
     def setClientScopes(self, client, requiredScopes):
         

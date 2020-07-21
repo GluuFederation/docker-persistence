@@ -1,5 +1,5 @@
 {
-  "gluu_user": {
+  "!bucket_prefix!_user": {
     "attributes": [
       ["objectClass"], 
       ["creationDate"], 
@@ -13,20 +13,18 @@
       ["oxDeviceKeyHandle"],
       ["oxAuthClientId"],
       ["oxAuthUserId"]
-
     ],
     "static" : [
       [["LOWER(`uid`)"], "objectClass = \"gluuPerson\""], 
       [["LOWER(`mail`)"], "objectClass = \"gluuPerson\""], 
-      [["exp", "oxAuthExpiration"], "del=true"] 
+      [["exp"], "del=true"] 
     ]
   },
 
-  "gluu": {
+  "!bucket_prefix!": {
     "attributes": [
       ["objectClass"],
       ["oxScriptType"], 
-      ["oxAuthExpiration"], 
       ["iat"], 
       ["oxAuthClientSecretExpiresAt"], 
       ["creationDate"], 
@@ -35,13 +33,15 @@
       ["displayName"], 
       ["oxAuthRegistrationAccessToken"], 
       ["oxAuthUmaScope"], 
-      ["oxTicket"], 
       ["mail"], 
       ["oxId"], 
+      ["oxTicket"], 
       ["del"],
       ["ssnId"],
       ["oxAuthClientId"],
       ["clnId"],
+      ["oxAuthUserDN"],
+      ["oxState"],
       ["del","exp"],
       ["objectClass","creationDate","oxStatus"]
     ],
@@ -49,45 +49,48 @@
       [["creationDate"], "objectClass = \"gluuPasswordResetRequest\""],
       [["oxScriptType"], "objectClass = \"oxCustomScript\""],
       [["oxApplicationType", "oxMetricType", "oxStartDate", "oxEndDate"], "objectClass = \"oxMetric\""],
-      [["exp", "oxAuthExpiration"], "del=true"]
-        
+      [["exp"], "del=true"],
+      [["oxStatus", "exp"], "objectClass = \"cibaRequest\""]
+
     ]
   },
 
-  "gluu_site": {
+  "!bucket_prefix!_site": {
     "attributes": [
-        ["objectClass"], 
+        ["objectClass"],
         ["inum"]
-    ], 
-    "static" : [
-    ]
-  },
-
-  "gluu_statistic": {
-    "attributes": [
-      ["objectClass"], 
-      ["oxStartDate"], 
-      ["del"], 
-      ["oxAuthExpiration"]
     ],
     "static" : [
     ]
   },
 
-  "gluu_cache": {
+  "!bucket_prefix!_statistic": {
+    "attributes": [
+      ["objectClass"],
+      ["oxStartDate"],
+      ["del"],
+      ["exp"]
+    ],
+    "static" : [
+    ]
+  },
+
+  "!bucket_prefix!_cache": {
     "attributes":[
     ],
     "static" : [
     ]
   },
 
-  "gluu_token": {
+  "!bucket_prefix!_token": {
     "attributes": [
-      ["authzCode"]
+      ["authzCode"],
+      ["oxAuthUserDN"]
     ],
     "static" : [
       [["grtId"], "objectClass = \"token\""],
-      [["ssnId"], "objectClass = \"token\""]
+      [["ssnId"], "objectClass = \"token\""],
+      [["exp"], "objectClass = \"oxAuthSessionId\""]
     ]
   },
 

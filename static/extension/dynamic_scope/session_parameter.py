@@ -6,7 +6,8 @@
 
 from org.gluu.model.custom.script.type.scope import DynamicScopeType
 from org.gluu.service.cdi.util import CdiUtil
-from org.gluu.oxauth.service import UserService, SessionIdService
+from org.gluu.oxauth.service import SessionIdService
+from org.gluu.oxauth.service.common import UserService
 from org.gluu.util import StringHelper, ArrayHelper
 from java.util import Arrays, ArrayList
 
@@ -16,7 +17,7 @@ class DynamicScope(DynamicScopeType):
     def __init__(self, currentTimeMillis):
         self.currentTimeMillis = currentTimeMillis
 
-    def init(self, configurationAttributes):
+    def init(self, customScript, configurationAttributes):
         print "Session dynamic scope. Initialization"
 
         print "Session dynamic scope. Initialized successfully"
@@ -71,4 +72,4 @@ class DynamicScope(DynamicScopeType):
         return Arrays.asList("external_session_id")
 
     def getApiVersion(self):
-        return 2
+        return 11

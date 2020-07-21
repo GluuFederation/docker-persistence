@@ -6,7 +6,7 @@
 
 from org.gluu.model.custom.script.type.scope import DynamicScopeType
 from org.gluu.service.cdi.util import CdiUtil
-from org.gluu.oxauth.service import UserService
+from org.gluu.oxauth.service.common import UserService
 from org.gluu.util import StringHelper, ArrayHelper
 from java.util import Arrays, ArrayList
 
@@ -16,7 +16,7 @@ class DynamicScope(DynamicScopeType):
     def __init__(self, currentTimeMillis):
         self.currentTimeMillis = currentTimeMillis
 
-    def init(self, configurationAttributes):
+    def init(self, customScript, configurationAttributes):
         print "Permission dynamic scope. Initialization"
 
         print "Permission dynamic scope. Initialized successfully"
@@ -50,4 +50,4 @@ class DynamicScope(DynamicScopeType):
         return Arrays.asList("role")
 
     def getApiVersion(self):
-        return 2
+        return 11

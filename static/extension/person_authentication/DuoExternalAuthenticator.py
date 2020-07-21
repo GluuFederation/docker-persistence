@@ -7,7 +7,8 @@
 from org.gluu.service.cdi.util import CdiUtil
 from org.gluu.oxauth.security import Identity
 from org.gluu.model.custom.script.type.auth import PersonAuthenticationType
-from org.gluu.oxauth.service import UserService, AuthenticationService
+from org.gluu.oxauth.service import AuthenticationService
+from org.gluu.oxauth.service.common import UserService
 from org.gluu.service import MailService
 from org.gluu.util import ArrayHelper
 from org.gluu.util import StringHelper
@@ -20,7 +21,7 @@ class PersonAuthentication(PersonAuthenticationType):
     def __init__(self, currentTimeMillis):
         self.currentTimeMillis = currentTimeMillis
 
-    def init(self, configurationAttributes):
+    def init(self, customScript, configurationAttributes):
         print "Duo. Initialization"
 
         duo_creds_file = configurationAttributes.get("duo_creds_file").getValue2()
@@ -73,8 +74,11 @@ class PersonAuthentication(PersonAuthenticationType):
         return True
 
     def getApiVersion(self):
-        return 1
-
+        return 11
+        
+    def getAuthenticationMethodClaims(self, requestParameters):
+        return None
+        
     def isValidAuthenticationMethod(self, usageType, configurationAttributes):
         return True
 
@@ -198,6 +202,13 @@ class PersonAuthentication(PersonAuthenticationType):
         if (step == 2):
             return "/auth/duo/duologin.xhtml"
         return ""
+
+    def getNextStep(self, configurationAttributes, requestParameters, step):
+        return -1
+
+    def getLogoutExternalUrl(self, configurationAttributes, requestParameters):
+        print "Get external logout URL call"
+        return None
 
     def logout(self, configurationAttributes, requestParameters):
         return True

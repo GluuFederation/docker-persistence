@@ -5,7 +5,6 @@
 #
 
 from org.gluu.model.custom.script.type.user import UserRegistrationType
-from org.gluu.model import GluuStatus
 from org.gluu.util import StringHelper, ArrayHelper
 from java.util import Arrays, ArrayList
 
@@ -15,7 +14,7 @@ class UserRegistration(UserRegistrationType):
     def __init__(self, currentTimeMillis):
         self.currentTimeMillis = currentTimeMillis
 
-    def init(self, configurationAttributes):
+    def init(self, customScript, configurationAttributes):
         print "User registration. Initialization"
 
         self.enable_user = StringHelper.toBoolean(configurationAttributes.get("enable_user").getValue2(), False)
@@ -45,9 +44,9 @@ class UserRegistration(UserRegistrationType):
     def preRegistration(self, user, requestParameters, configurationAttributes):
         print "User registration. Pre method"
 
-        userStatus = GluuStatus.ACTIVE
+        userStatus = "active"
         if not self.enable_user:
-            userStatus = GluuStatus.INACTIVE
+            userStatus = "inactive"
 
         # Disable/Enable registered user
         user.setStatus(userStatus)
@@ -73,4 +72,4 @@ class UserRegistration(UserRegistrationType):
         return True
 
     def getApiVersion(self):
-        return 1
+        return 11

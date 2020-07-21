@@ -43,7 +43,7 @@ objectClass: oxCustomScript
 objectClass: top
 description: Permission Dynamic Scope script
 displayName: dynamic_permission
-oxEnabled: false
+oxEnabled: true
 inum: CB5B-3211
 oxLevel: 100
 oxModuleProperty: {"value1":"location_type","value2":"ldap","description":""}
@@ -211,6 +211,20 @@ oxRevision: 1
 oxModuleProperty: {"value1":"location_type","value2":"ldap","description":""}
 oxScript::%(introspection_introspection_custom_params)s
 oxScriptType: introspection
+programmingLanguage: python
+
+dn: inum=2DAF-CA90,ou=scripts,o=gluu
+objectClass: top
+objectClass: oxCustomScript
+description: Frontchannel logout Sample
+displayName: frontchannel_logout_sample
+oxEnabled: false
+inum: 2DAF-CA90
+oxLevel: 1
+oxRevision: 1
+oxModuleProperty: {"value1":"location_type","value2":"ldap","description":""}
+oxScript::%(end_session_end_session)s
+oxScriptType: end_session
 programmingLanguage: python
 
 dn: inum=2DAF-AA91,ou=scripts,o=gluu
@@ -562,4 +576,44 @@ oxModuleProperty: {"value1":"location_type","value2":"ldap","description":""}
 oxRevision: 1
 oxScript::%(consent_gathering_consentgatheringsample)s
 oxScriptType: consent_gathering
+programmingLanguage: python
+
+dn: inum=8AF7.D82A,ou=scripts,o=gluu
+objectClass: oxCustomScript
+objectClass: top
+displayName: persistence_extension
+inum: 8AF7.D82A
+oxEnabled: false
+oxLevel: 100
+oxModuleProperty: {"value1":"location_type","value2":"ldap","description":""}
+oxRevision: 19
+oxScript::%(persistence_extension_samplescript)s
+oxScriptType: persistence_extension
+programmingLanguage: python
+
+dn: inum=8AF7.D82B,ou=scripts,o=gluu
+objectClass: oxCustomScript
+objectClass: top
+displayName: idp
+inum: 8AF7.D82B
+oxEnabled: false
+oxLevel: 100
+oxModuleProperty: {"value1":"location_type","value2":"ldap","description":""}
+oxRevision: 1
+oxScript::%(idp_samplescript)s
+oxScriptType: idp
+programmingLanguage: python
+
+dn: inum=C1BA-C1BA,ou=scripts,o=gluu
+objectClass: top
+objectClass: oxCustomScript
+description: Firebase notification sender
+displayName: firebase_ciba_end_user_notification
+oxEnabled: false
+inum: C1BA-C1BA
+oxLevel: 10
+oxModuleProperty: {"value1":"location_type","value2":"ldap","description":""}
+oxRevision: 1
+oxScript::%(ciba_end_user_notification)s
+oxScriptType: ciba_end_user_notification
 programmingLanguage: python

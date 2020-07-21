@@ -8,7 +8,8 @@ from org.gluu.model.custom.script.type.owner import ResourceOwnerPasswordCredent
 from org.gluu.oxauth.model.common import SessionIdState
 from org.gluu.oxauth.model.config import ConfigurationFactory , Constants
 from org.gluu.oxauth.security import Identity
-from org.gluu.oxauth.service import EncryptionService , UserService , AuthenticationService , SessionIdService
+from org.gluu.oxauth.service import AuthenticationService, SessionIdService
+from org.gluu.oxauth.service.common import EncryptionService, UserService
 from org.gluu.oxauth.service.push.sns import PushPlatform, PushSnsService
 from org.gluu.service.cdi.util import CdiUtil
 from org.gluu.util import StringHelper
@@ -38,7 +39,7 @@ class ResourceOwnerPasswordCredentials(ResourceOwnerPasswordCredentialsType):
         self.oneStepAuthScheme = "onestep"
         self.twoStepAuthScheme = "twostep"
     
-    def init(self, configurationAttributes):
+    def init(self, customScript, configurationAttributes):
 
         print "Super-Gluu-RO Init"
         if not configurationAttributes.containsKey("application_id"):
@@ -90,7 +91,7 @@ class ResourceOwnerPasswordCredentials(ResourceOwnerPasswordCredentialsType):
         return True
     
     def getApiVersion(self):
-        return 1
+        return 11
     
     def authenticate(self, context): 
         if self.perform_preliminary_user_authentication(context) == False:

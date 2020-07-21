@@ -1,17 +1,14 @@
-# oxAuth is available under the MIT License (2008). See http://opensource.org/licenses/MIT for full text.
-# Copyright (c) 2019, Gluu
-#
 # Author: Jose Gonzalez
 
 from java.util import Collections, HashMap, HashSet, ArrayList, Arrays, Date
-
 from java.nio.charset import Charset
 
 from org.apache.http.params import CoreConnectionPNames
 
 from org.oxauth.persistence.model.configuration import GluuConfiguration
 from org.gluu.oxauth.security import Identity
-from org.gluu.oxauth.service import AuthenticationService, UserService, EncryptionService, AppInitializer
+from org.gluu.oxauth.service import AuthenticationService, UserService
+from org.gluu.oxauth.service.common import EncryptionService
 from org.gluu.oxauth.service.custom import CustomScriptService
 from org.gluu.oxauth.service.net import HttpService
 from org.gluu.oxauth.util import ServerUtil
@@ -19,6 +16,8 @@ from org.gluu.model import SimpleCustomProperty
 from org.gluu.model.casa import ApplicationConfiguration
 from org.gluu.model.custom.script import CustomScriptType
 from org.gluu.model.custom.script.type.auth import PersonAuthenticationType
+from org.gluu.persist import PersistenceEntryManager
+from org.gluu.service import CacheService
 from org.gluu.service.cdi.util import CdiUtil
 from org.gluu.util import StringHelper
 
@@ -33,13 +32,11 @@ class PersonAuthentication(PersonAuthenticationType):
     def __init__(self, currentTimeMillis):
         self.currentTimeMillis = currentTimeMillis
         self.ACR_SG = "super_gluu"
-        self.ACR_SMS = "twilio_sms"
-        self.ACR_OTP = "otp"
         self.ACR_U2F = "u2f"
 
         self.modulePrefix = "casa-external_"
 
-    def init(self, configurationAttributes):
+    def init(self, customScript, configurationAttributes):
 
         print "Casa. init called"
         self.authenticators = {}
@@ -68,7 +65,7 @@ class PersonAuthentication(PersonAuthenticationType):
                         application_id = configurationAttributes.get("supergluu_app_id").getValue2()
                         configAttrs.put("application_id", SimpleCustomProperty("application_id", application_id))
 
-                    if module.init(configAttrs):
+                    if module.init(None, configAttrs):
                         module.configAttrs = configAttrs
                         self.authenticators[acr] = module
                     else:
@@ -90,7 +87,11 @@ class PersonAuthentication(PersonAuthenticationType):
 
 
     def getApiVersion(self):
-        return 2
+        return 11
+
+
+    def getAuthenticationMethodClaims(self, configurationAttributes):
+        return None
 
 
     def isValidAuthenticationMethod(self, usageType, configurationAttributes):
@@ -103,7 +104,7 @@ class PersonAuthentication(PersonAuthenticationType):
 
 
     def authenticate(self, configurationAttributes, requestParameters, step):
-        print "Casa. authenticate %s" % str(step)
+        print "Casa. authenticate for step %s" % str(step)
 
         userService = CdiUtil.bean(UserService)
         authenticationService = CdiUtil.bean(AuthenticationService)
@@ -195,10 +196,12 @@ class PersonAuthentication(PersonAuthenticationType):
 
     def prepareForStep(self, configurationAttributes, requestParameters, step):
         print "Casa. prepareForStep %s" % str(step)
+        identity = CdiUtil.bean(Identity)
+
         if step == 1:
+            self.prepareUIParams(identity)
             return True
         else:
-            identity = CdiUtil.bean(Identity)
             session_attributes = identity.getSessionId().getSessionAttributes()
 
             authenticationService = CdiUtil.bean(AuthenticationService)
@@ -221,9 +224,9 @@ class PersonAuthentication(PersonAuthenticationType):
 
     def getExtraParametersForStep(self, configurationAttributes, step):
         print "Casa. getExtraParametersForStep %s" % str(step)
+        list = ArrayList()
 
         if step > 1:
-            list = ArrayList()
             acr = CdiUtil.bean(Identity).getWorkingParameter("ACR")
 
             if acr in self.authenticators:
@@ -233,10 +236,10 @@ class PersonAuthentication(PersonAuthenticationType):
                     list.addAll(params)
 
             list.addAll(Arrays.asList("ACR", "methods", "trustedDevicesInfo"))
-            print "extras are %s" % list
-            return list
 
-        return None
+        list.addAll(Arrays.asList("casa_contextPath", "casa_prefix", "casa_faviconUrl", "casa_extraCss", "casa_logoUrl"))
+        print "extras are %s" % list
+        return list
 
 
     def getCountAuthenticationSteps(self, configurationAttributes):
@@ -268,7 +271,7 @@ class PersonAuthentication(PersonAuthenticationType):
 
             return page
 
-        return ""
+        return "/casa/login.xhtml"
 
 
     def getNextStep(self, configurationAttributes, requestParameters, step):
@@ -292,7 +295,7 @@ class PersonAuthentication(PersonAuthenticationType):
 # Miscelaneous
 
     def getLocalPrimaryKey(self):
-        entryManager = CdiUtil.bean(AppInitializer).createPersistenceEntryManager()
+        entryManager = CdiUtil.bean(PersistenceEntryManager)
         config = GluuConfiguration()
         config = entryManager.find(config.getClass(), "ou=configuration,o=gluu")
         #Pick (one) attribute where user id is stored (e.g. uid/mail)
@@ -302,7 +305,7 @@ class PersonAuthentication(PersonAuthenticationType):
 
 
     def getSettings(self):
-        entryManager = CdiUtil.bean(AppInitializer).createPersistenceEntryManager()
+        entryManager = CdiUtil.bean(PersistenceEntryManager)
         config = ApplicationConfiguration()
         config = entryManager.find(config.getClass(), "ou=casa,ou=configuration,o=gluu")
         settings = None
@@ -353,6 +356,7 @@ class PersonAuthentication(PersonAuthenticationType):
                     methods.add(method)
             except:
                 print "Casa. getAvailMethodsUser. hasEnrollments call could not be issued for %s module" % method
+                print "Exception: ", sys.exc_info()[1]
 
         try:
             if skip != None:
@@ -364,6 +368,43 @@ class PersonAuthentication(PersonAuthenticationType):
 
         print "Casa. getAvailMethodsUser %s" % methods.toString()
         return methods
+
+
+    def prepareUIParams(self, identity):
+        
+        print "Casa. prepareUIParams. Reading UI branding params"
+        cacheService = CdiUtil.bean(CacheService)
+        casaAssets = cacheService.get("casa_assets")
+            
+        if casaAssets == None:
+            #This may happen when cache type is IN_MEMORY, where actual cache is merely a local variable 
+            #(a expiring map) living inside Casa webapp, not oxAuth webapp
+            
+            sets = self.getSettings()
+            
+            custPrefix = "/custom"
+            logoUrl = "/images/logo.png"
+            faviconUrl = "/images/favicon.ico"
+            if ("extra_css" in sets and sets["extra_css"] != None) or sets["use_branding"]:
+                logoUrl = custPrefix + logoUrl
+                faviconUrl = custPrefix + faviconUrl
+            
+            prefix = custPrefix if sets["use_branding"] else ""
+            
+            casaAssets = {
+                "contextPath": "/casa",
+                "prefix" : prefix,
+                "faviconUrl" : faviconUrl,
+                "extraCss": sets["extra_css"] if "extra_css" in sets else None,
+                "logoUrl": logoUrl
+            }
+        
+        #Setting a single variable with the whole map does not work...
+        identity.setWorkingParameter("casa_contextPath", casaAssets['contextPath'])
+        identity.setWorkingParameter("casa_prefix", casaAssets['prefix'])
+        identity.setWorkingParameter("casa_faviconUrl", casaAssets['contextPath'] + casaAssets['faviconUrl'])
+        identity.setWorkingParameter("casa_extraCss", casaAssets['extraCss'])
+        identity.setWorkingParameter("casa_logoUrl", casaAssets['contextPath'] + casaAssets['logoUrl'])
 
 
     def simulateFirstStep(self, requestParameters, acr):
@@ -618,4 +659,9 @@ class PersonAuthentication(PersonAuthenticationType):
 
                 return response
 
+        return None
+
+        
+    def getLogoutExternalUrl(self, configurationAttributes, requestParameters):
+        print "Get external logout URL call"
         return None

@@ -21,7 +21,7 @@ class PersonAuthentication(PersonAuthenticationType):
     def __init__(self, currentTimeMillis):
         self.currentTimeMillis = currentTimeMillis
 
-    def init(self, configurationAttributes):
+    def init(self, customScript, configurationAttributes):
         print "Yubicloud. Initialization"
 
         self.api_server = configurationAttributes.get("yubicloud_uri").getValue2()
@@ -35,8 +35,11 @@ class PersonAuthentication(PersonAuthenticationType):
         return True
 
     def getApiVersion(self):
-        return 1
-
+        return 11
+        
+    def getAuthenticationMethodClaims(self, requestParameters):
+        return None
+        
     def isValidAuthenticationMethod(self, usageType, configurationAttributes):
         return True
 
@@ -103,6 +106,13 @@ class PersonAuthentication(PersonAuthenticationType):
 
     def getPageForStep(self, configurationAttributes, step):
         return ""
+
+    def getNextStep(self, configurationAttributes, requestParameters, step):
+        return -1
+
+    def getLogoutExternalUrl(self, configurationAttributes, requestParameters):
+        print "Get external logout URL call"
+        return None
 
     def logout(self, configurationAttributes, requestParameters):
         return True

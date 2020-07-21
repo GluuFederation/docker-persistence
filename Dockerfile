@@ -1,27 +1,21 @@
-FROM alpine:3.9
+FROM alpine:3.11
 
 # ===============
 # Alpine packages
 # ===============
 
 RUN apk update \
-    && apk add --no-cache py-pip curl \
+    && apk add --no-cache py3-pip curl tini \
     && apk add --no-cache --virtual build-deps git wget
-
-# ====
-# Tini
-# ====
-
-RUN wget -q https://github.com/krallin/tini/releases/download/v0.18.0/tini-static -O /usr/bin/tini \
-    && chmod +x /usr/bin/tini
 
 # ======
 # Python
 # ======
 
+RUN apk add --no-cache py3-cryptography
 COPY requirements.txt /tmp/requirements.txt
-RUN pip install -U pip \
-    && pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip3 install -U pip \
+    && pip3 install --no-cache-dir -r /tmp/requirements.txt
 
 # =======
 # Cleanup
@@ -105,7 +99,8 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
     GLUU_SAML_ENABLED=false \
     GLUU_SCIM_ENABLED=false \
     GLUU_SCIM_TEST_MODE=false \
-    GLUU_PERSISTENCE_SKIP_EXISTING=true
+    GLUU_PERSISTENCE_SKIP_EXISTING=true \
+    GLUU_OXD_SERVER_URL=localhost:8443
 
 # ====
 # misc
@@ -114,8 +109,8 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
 LABEL name="Persistence" \
     maintainer="Gluu Inc. <support@gluu.org>" \
     vendor="Gluu Federation" \
-    version="4.1.1" \
-    release="04" \
+    version="4.2.0" \
+    release="01" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"
 

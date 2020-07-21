@@ -5,6 +5,7 @@ import logging.config
 import os
 import time
 from collections import OrderedDict
+# from urllib.parse import urlparse
 
 from ldap3 import BASE
 from ldap3 import Connection
@@ -80,6 +81,7 @@ def get_bucket_mappings():
                 "scripts.ldif",
                 "configuration.ldif",
                 "scim.ldif",
+                "fido2.ldif",
                 "oxidp.ldif",
                 "oxtrust_api.ldif",
                 "passport.ldif",
@@ -92,6 +94,7 @@ def get_bucket_mappings():
                 "o_metric.ldif",
                 "gluu_radius_clients.ldif",
                 "passport_clients.ldif",
+                "casa.ldif",
                 "scripts_casa.ldif",
             ],
             "mem_alloc": 100,
@@ -130,7 +133,7 @@ def get_bucket_mappings():
 
     if GLUU_PERSISTENCE_TYPE != "couchbase":
         bucket_mappings = OrderedDict({
-            name: mapping for name, mapping in bucket_mappings.iteritems()
+            name: mapping for name, mapping in bucket_mappings.items()
             if name != GLUU_PERSISTENCE_LDAP_MAPPING
         })
     return bucket_mappings
@@ -153,7 +156,7 @@ class AttrProcessor(object):
 
         with open("/app/static/opendj_types.json") as f:
             attr_maps = json.loads(f.read())
-            for type_, names in attr_maps.iteritems():
+            for type_, names in attr_maps.items():
                 for name in names:
                     attrs[name] = {"type": type_, "multivalued": False}
 
@@ -234,7 +237,7 @@ def transform_values(name, values, attr_processor):
 
 
 def transform_entry(entry, attr_processor):
-    for k, v in entry.iteritems():
+    for k, v in entry.items():
         v = transform_values(k, v, attr_processor)
 
         if len(v) == 1 and attr_processor.is_multivalued(k) is False:
@@ -262,23 +265,16 @@ def render_ldif(src, dst, ctx):
         f.write(safe_render(txt, ctx))
 
 
-def get_base_ctx(manager):
-    passport_oxtrust_config = '''
-    "passportUmaClientId":"%(passport_rs_client_id)s",
-    "passportUmaClientKeyId":"%(passport_rs_client_cert_alias)s",
-    "passportUmaResourceId":"%(passport_resource_id)s",
-    "passportUmaScope":"https://%(hostname)s/oxauth/restv1/uma/scopes/passport_access",
-    "passportUmaClientKeyStoreFile":"%(passport_rs_client_jks_fn)s",
-    "passportUmaClientKeyStorePassword":"%(passport_rs_client_jks_pass_encoded)s",
-''' % {
-        "passport_rs_client_id": manager.config.get("passport_rs_client_id"),
-        "passport_resource_id": manager.config.get("passport_resource_id"),
-        "hostname": manager.config.get("hostname"),
-        "passport_rs_client_jks_fn": manager.config.get("passport_rs_client_jks_fn"),
-        "passport_rs_client_jks_pass_encoded": manager.secret.get("passport_rs_client_jks_pass_encoded"),
-        "passport_rs_client_cert_alias": manager.config.get("passport_rs_client_cert_alias"),
-    }
+# def resolve_oxd_url(url):
+#     result = urlparse(url)
+#     scheme = result.scheme or "https"
+#     host_port = result.netloc or result.path
+#     host = host_port.split(":")[0]
+#     port = int(host_port.split(":")[-1])
+#     return scheme, host, port
 
+
+def get_base_ctx(manager):
     redis_pw = manager.secret.get("redis_pw") or ""
     redis_pw_encoded = ""
 
@@ -286,7 +282,7 @@ def get_base_ctx(manager):
         redis_pw_encoded = encode_text(
             redis_pw,
             manager.secret.get("encoded_salt"),
-        )
+        ).decode()
 
     jca_pw = "admin"
     if os.path.isfile(GLUU_JCA_PASSWORD_FILE):
@@ -296,7 +292,9 @@ def get_base_ctx(manager):
     jca_pw_encoded = encode_text(
         jca_pw,
         manager.secret.get("encoded_salt"),
-    )
+    ).decode()
+
+    # _, oxd_hostname, oxd_port = resolve_oxd_url(os.environ.get("GLUU_OXD_SERVER_URL", "localhost:8443"))
 
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
@@ -329,6 +327,7 @@ def get_base_ctx(manager):
         'oxauth_openid_key_base64': manager.secret.get('oxauth_openid_key_base64'),
         'passport_rs_client_id': manager.config.get('passport_rs_client_id'),
         'passport_rs_client_base64_jwks': manager.secret.get('passport_rs_client_base64_jwks'),
+        'passport_rs_client_cert_alias': manager.config.get('passport_rs_client_cert_alias'),
         'passport_rp_client_id': manager.config.get('passport_rp_client_id'),
         'passport_rp_client_base64_jwks': manager.secret.get('passport_rp_client_base64_jwks'),
         "passport_rp_client_jks_fn": manager.config.get("passport_rp_client_jks_fn"),
@@ -365,7 +364,6 @@ def get_base_ctx(manager):
         "oxtrust_resource_server_client_id": manager.config.get("oxtrust_resource_server_client_id"),
         "oxtrust_resource_id": manager.config.get("oxtrust_resource_id"),
         "passport_resource_id": manager.config.get("passport_resource_id"),
-        "passport_oxtrust_config": passport_oxtrust_config,
 
         "gluu_radius_client_id": manager.config.get("gluu_radius_client_id"),
         "gluu_ro_encoded_pw": manager.secret.get("gluu_ro_encoded_pw"),
@@ -397,15 +395,17 @@ def get_base_ctx(manager):
         "encoded_api_test_client_secret": encode_text(
             manager.secret.get("api_test_client_secret"),
             manager.secret.get("encoded_salt"),
-        ),
+        ).decode(),
         "enable_scim_access_policy": str(as_boolean(GLUU_SCIM_ENABLED) or as_boolean(GLUU_PASSPORT_ENABLED)).lower(),
         "scimTestMode": str(as_boolean(GLUU_SCIM_TEST_MODE)).lower(),
         "scim_test_client_id": manager.config.get("scim_test_client_id"),
         "encoded_scim_test_client_secret": encode_text(
             manager.secret.get("scim_test_client_secret"),
             manager.secret.get("encoded_salt"),
-        ),
+        ).decode(),
         "casa_enable_script": str(as_boolean(GLUU_CASA_ENABLED)).lower(),
+        "oxd_hostname": "localhost",
+        "oxd_port": "8443",
     }
     return ctx
 
@@ -434,7 +434,7 @@ def merge_radius_ctx(ctx):
         "super_gluu_ro_script": "super_gluu_ro.py",
     }
 
-    for key, file_ in file_mappings.iteritems():
+    for key, file_ in file_mappings.items():
         fn = os.path.join(basedir, file_)
         with open(fn) as f:
             ctx[key] = generate_base64_contents(f.read())
@@ -449,7 +449,7 @@ def merge_oxtrust_ctx(ctx):
         'oxtrust_import_person_base64': 'oxtrust-import-person.json',
     }
 
-    for key, file_ in file_mappings.iteritems():
+    for key, file_ in file_mappings.items():
         file_path = os.path.join(basedir, file_)
         with open(file_path) as fp:
             ctx[key] = generate_base64_contents(fp.read() % ctx)
@@ -464,7 +464,7 @@ def merge_oxauth_ctx(ctx):
         'oxauth_error_base64': 'oxauth-errors.json',
     }
 
-    for key, file_ in file_mappings.iteritems():
+    for key, file_ in file_mappings.items():
         file_path = os.path.join(basedir, file_)
         with open(file_path) as fp:
             ctx[key] = generate_base64_contents(fp.read() % ctx)
@@ -477,7 +477,7 @@ def merge_oxidp_ctx(ctx):
         'oxidp_config_base64': 'oxidp-config.json',
     }
 
-    for key, file_ in file_mappings.iteritems():
+    for key, file_ in file_mappings.items():
         file_path = os.path.join(basedir, file_)
         with open(file_path) as fp:
             ctx[key] = generate_base64_contents(fp.read() % ctx)
@@ -490,7 +490,21 @@ def merge_passport_ctx(ctx):
         'passport_central_config_base64': 'passport-central-config.json',
     }
 
-    for key, file_ in file_mappings.iteritems():
+    for key, file_ in file_mappings.items():
+        file_path = os.path.join(basedir, file_)
+        with open(file_path) as fp:
+            ctx[key] = generate_base64_contents(fp.read() % ctx)
+    return ctx
+
+
+def merge_fido2_ctx(ctx):
+    basedir = '/app/templates/fido2'
+    file_mappings = {
+        'fido2_dynamic_conf_base64': 'fido2-dynamic-conf.json',
+        'fido2_static_conf_base64': 'fido2-static-conf.json',
+    }
+
+    for key, file_ in file_mappings.items():
         file_path = os.path.join(basedir, file_)
         with open(file_path) as fp:
             ctx[key] = generate_base64_contents(fp.read() % ctx)
@@ -505,6 +519,7 @@ def prepare_template_ctx(manager):
     ctx = merge_oxtrust_ctx(ctx)
     ctx = merge_oxidp_ctx(ctx)
     ctx = merge_passport_ctx(ctx)
+    ctx = merge_fido2_ctx(ctx)
     return ctx
 
 
@@ -541,7 +556,7 @@ class CouchbaseBackend(object):
             logger.info("Creating bucket {0} with type {1} and RAM size {2}".format("gluu", bucket_type, memsize))
             req = self.client.add_bucket("gluu", memsize, bucket_type)
             if not req.ok:
-                logger.warn("Failed to create bucket {}; reason={}".format("gluu", req.text))
+                logger.warning("Failed to create bucket {}; reason={}".format("gluu", req.text))
 
         req = self.client.get_buckets()
         if req.ok:
@@ -549,7 +564,7 @@ class CouchbaseBackend(object):
         else:
             remote_buckets = tuple([])
 
-        for name, mapping in bucket_mappings.iteritems():
+        for name, mapping in bucket_mappings.items():
             if mapping["bucket"] in remote_buckets:
                 continue
 
@@ -558,13 +573,14 @@ class CouchbaseBackend(object):
             logger.info("Creating bucket {0} with type {1} and RAM size {2}".format(mapping["bucket"], bucket_type, memsize))
             req = self.client.add_bucket(mapping["bucket"], memsize, bucket_type)
             if not req.ok:
-                logger.warn("Failed to create bucket {}; reason={}".format(mapping["bucket"], req.text))
+                logger.warning("Failed to create bucket {}; reason={}".format(mapping["bucket"], req.text))
 
     def create_indexes(self, bucket_mappings):
-        buckets = [mapping["bucket"] for _, mapping in bucket_mappings.iteritems()]
+        buckets = [mapping["bucket"] for _, mapping in bucket_mappings.items()]
 
         with open("/app/static/couchbase_index.json") as f:
-            indexes = json.loads(f.read())
+            txt = f.read().replace("!bucket_prefix!", "gluu")
+            indexes = json.loads(txt)
 
         for bucket in buckets:
             if bucket not in indexes:
@@ -624,18 +640,18 @@ class CouchbaseBackend(object):
                         error = req.json()["errors"][0]
                         if error["code"] in (4300, 5000):
                             continue
-                        logger.warn("Failed to execute query, reason={}".format(error["msg"]))
+                        logger.warning("Failed to execute query, reason={}".format(error["msg"]))
 
     def import_ldif(self, bucket_mappings):
         ctx = prepare_template_ctx(self.manager)
         attr_processor = AttrProcessor()
 
-        for _, mapping in bucket_mappings.iteritems():
+        for _, mapping in bucket_mappings.items():
             for file_ in mapping["files"]:
                 src = "/app/templates/ldif/{}".format(file_)
                 dst = "/app/tmp/{}".format(file_)
                 render_ldif(src, dst, ctx)
-                parser = LDIFParser(open(dst))
+                parser = LDIFParser(open(dst, "rb"))
 
                 query_file = "/app/tmp/{}.n1ql".format(file_)
 
@@ -662,7 +678,7 @@ class CouchbaseBackend(object):
 
                         req = self.client.exec_query(query)
                         if not req.ok:
-                            logger.warn("Failed to execute query, reason={}".format(req.json()))
+                            logger.warning("Failed to execute query, reason={}".format(req.json()))
 
     def initialize(self):
         def is_initialized():
@@ -713,7 +729,7 @@ class LDAPBackend(object):
         password = decode_text(
             manager.secret.get("encoded_ox_ldap_pw"),
             manager.secret.get("encoded_salt"),
-        )
+        ).decode()
 
         server = Server(host, port=1636, use_ssl=True)
         self.conn = Connection(server, user, password)
@@ -752,8 +768,8 @@ class LDAPBackend(object):
             except (LDAPSessionTerminatedByServerError, LDAPSocketOpenError) as exc:
                 reason = exc
 
-            logger.warn("Waiting for index to be ready; reason={}; "
-                        "retrying in {} seconds".format(reason, sleep_duration))
+            logger.warning("Waiting for index to be ready; reason={}; "
+                           "retrying in {} seconds".format(reason, sleep_duration))
             time.sleep(sleep_duration)
 
     def import_ldif(self):
@@ -765,6 +781,7 @@ class LDAPBackend(object):
                 "scripts.ldif",
                 "configuration.ldif",
                 "scim.ldif",
+                "fido2.ldif",
                 "oxidp.ldif",
                 "oxtrust_api.ldif",
                 "passport.ldif",
@@ -777,6 +794,7 @@ class LDAPBackend(object):
                 "o_metric.ldif",
                 "gluu_radius_clients.ldif",
                 "passport_clients.ldif",
+                "casa.ldif",
                 "scripts_casa.ldif",
             ],
             "user": [
@@ -805,7 +823,7 @@ class LDAPBackend(object):
 
         ctx = prepare_template_ctx(self.manager)
 
-        for mapping, files in ldif_mappings.iteritems():
+        for mapping, files in ldif_mappings.items():
             self.check_indexes(mapping)
 
             for file_ in files:
@@ -814,7 +832,7 @@ class LDAPBackend(object):
                 dst = "/app/tmp/{}".format(file_)
                 render_ldif(src, dst, ctx)
 
-                parser = LDIFParser(open(dst))
+                parser = LDIFParser(open(dst, "rb"))
                 for dn, entry in parser.parse():
                     self.add_entry(dn, entry)
 
@@ -827,13 +845,13 @@ class LDAPBackend(object):
                 with self.conn as conn:
                     conn.add(dn, attributes=attrs)
                     if conn.result["result"] != 0:
-                        logger.warn("Unable to add entry with DN {0}; reason={1}".format(
+                        logger.warning("Unable to add entry with DN {0}; reason={1}".format(
                             dn, conn.result["message"],
                         ))
                     return
             except (LDAPSessionTerminatedByServerError, LDAPSocketOpenError) as exc:
-                logger.warn("Unable to add entry with DN {0}; reason={1}; "
-                            "retrying in {2} seconds".format(dn, exc, sleep_duration))
+                logger.warning("Unable to add entry with DN {0}; reason={1}; "
+                               "retrying in {2} seconds".format(dn, exc, sleep_duration))
             time.sleep(sleep_duration)
 
     def initialize(self):
