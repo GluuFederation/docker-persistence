@@ -51,24 +51,24 @@
       [["oxApplicationType", "oxMetricType", "oxStartDate", "oxEndDate"], "objectClass = \"oxMetric\""],
       [["exp"], "del=true"],
       [["oxStatus", "exp"], "objectClass = \"cibaRequest\""]
-
+        
     ]
   },
 
   "!bucket_prefix!_site": {
     "attributes": [
-        ["objectClass"],
+        ["objectClass"], 
         ["inum"]
-    ],
+    ], 
     "static" : [
     ]
   },
 
   "!bucket_prefix!_statistic": {
     "attributes": [
-      ["objectClass"],
-      ["oxStartDate"],
-      ["del"],
+      ["objectClass"], 
+      ["oxStartDate"], 
+      ["del"], 
       ["exp"]
     ],
     "static" : [
@@ -77,20 +77,20 @@
 
   "!bucket_prefix!_cache": {
     "attributes":[
+        ["oxAuthUserDN"]
     ],
     "static" : [
+        [["exp"], "objectClass = \"oxAuthSessionId\""]
     ]
   },
 
   "!bucket_prefix!_token": {
     "attributes": [
-      ["authzCode"],
-      ["oxAuthUserDN"]
+      ["authzCode"]
     ],
     "static" : [
-      [["grtId"], "objectClass = \"token\""],
-      [["ssnId"], "objectClass = \"token\""],
-      [["exp"], "objectClass = \"oxAuthSessionId\""]
+        [["grtId"], "objectClass = \"token\""],
+        [["ssnId"], "objectClass = \"token\""]
     ]
   },
 
