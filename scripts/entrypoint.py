@@ -5,7 +5,6 @@ import logging.config
 import os
 import time
 from collections import OrderedDict
-# from urllib.parse import urlparse
 
 from ldap3 import BASE
 from ldap3 import Connection
@@ -126,9 +125,16 @@ def get_bucket_mappings():
         "cache": {
             "bucket": "gluu_cache",
             "files": [],
-            "mem_alloc": 300,
+            "mem_alloc": 100,
             "document_key_prefix": ["cache_"],
         },
+        "session": {
+            "bucket": "gluu_session",
+            "files": [],
+            "mem_alloc": 200,
+            "document_key_prefix": [],
+        },
+
     })
 
     if GLUU_PERSISTENCE_TYPE != "couchbase":
@@ -265,15 +271,6 @@ def render_ldif(src, dst, ctx):
         f.write(safe_render(txt, ctx))
 
 
-# def resolve_oxd_url(url):
-#     result = urlparse(url)
-#     scheme = result.scheme or "https"
-#     host_port = result.netloc or result.path
-#     host = host_port.split(":")[0]
-#     port = int(host_port.split(":")[-1])
-#     return scheme, host, port
-
-
 def get_base_ctx(manager):
     redis_pw = manager.secret.get("redis_pw") or ""
     redis_pw_encoded = ""
@@ -293,8 +290,6 @@ def get_base_ctx(manager):
         jca_pw,
         manager.secret.get("encoded_salt"),
     ).decode()
-
-    # _, oxd_hostname, oxd_port = resolve_oxd_url(os.environ.get("GLUU_OXD_SERVER_URL", "localhost:8443"))
 
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
@@ -806,6 +801,7 @@ class LDAPBackend(object):
             ],
             "cache": [],
             "token": [],
+            "session": [],
         }
 
         # hybrid means only a subsets of ldif are needed

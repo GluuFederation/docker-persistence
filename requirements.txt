@@ -1,2 +1,2 @@
 ldif3==3.2.2
--e git+https://github.com/GluuFederation/pygluu-containerlib@2.0.0#egg=pygluu-containerlib
+-e git+https://github.com/GluuFederation/pygluu-containerlib@d7e76d2900daa8c5d7dc9005836eb3304de3ffc5#egg=pygluu-containerlib
