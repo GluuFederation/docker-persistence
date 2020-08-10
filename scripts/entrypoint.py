@@ -277,13 +277,17 @@ def get_jackrabbit_rmi_url():
 
 
 def get_jackrabbit_creds():
-    admin_id = "admin"
-    admin_id_file = os.environ.get("GLUU_JACKRABBIT_ADMIN_ID_FILE", "/etc/gluu/conf/jackrabbit_admin_id")
-    with contextlib.suppress(FileNotFoundError):
-        with open(admin_id_file) as f:
-            admin_id = f.read().strip()
+    username = os.environ.get("GLUU_JACKRABBIT_ADMIN_ID", "admin")
+    password = ""
 
-    username = password = admin_id
+    password_file = os.environ.get(
+        "GLUU_JACKRABBIT_ADMIN_PASSWORD_FILE",
+        "/etc/gluu/conf/jackrabbit_admin_password",
+    )
+    with contextlib.suppress(FileNotFoundError):
+        with open(password_file) as f:
+            password = f.read().strip()
+    password = password or username
     return username, password
 
 
