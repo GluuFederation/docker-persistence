@@ -61,7 +61,9 @@ The following environment variables are supported by the container:
 - `GLUU_RADIUS_ENABLED`: Enable Radius-related features; UI menu, etc. (default to `false`).
 - `GLUU_SAML_ENABLED`: Enable SAML-related features; UI menu, etc. (default to `false`).
 - `GLUU_DOCUMENT_STORE_TYPE`: Document store type (one of `LOCAL` or `JCA`; default to `LOCAL`).
-- `GLUU_JCA_RMI_URL`: URL to remote repository access (default to `http://localhost:8080/rmi`).
+- `GLUU_JCA_RMI_URL`: __DEPRECATED__ in favor of `GLUU_JACKRABBIT_RMI_URL`.
+- `GLUU_JACKRABBIT_RMI_URL`: URL to remote repository access (default to `http://localhost:8080/rmi`).
+- `GLUU_JACKRABBIT_ADMIN_ID_FILE`: Absolute path to file contains ID for admin user (default to `/etc/gluu/conf/jackrabbit_admin_id`).
 
 ## Initializing Data
 

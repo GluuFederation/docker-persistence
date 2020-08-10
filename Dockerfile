@@ -101,7 +101,9 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
     GLUU_SCIM_ENABLED=false \
     GLUU_SCIM_TEST_MODE=false \
     GLUU_PERSISTENCE_SKIP_EXISTING=true \
-    GLUU_OXD_SERVER_URL=localhost:8443
+    GLUU_DOCUMENT_STORE_TYPE=LOCAL \
+    GLUU_JACKRABBIT_RMI_URL=http://localhost:8080/rmi \
+    GLUU_JACKRABBIT_ADMIN_ID_FILE=/etc/gluu/conf/jackrabbit_admin_id
 
 # ====
 # misc
