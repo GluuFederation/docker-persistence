@@ -2,6 +2,12 @@
 
 Here you can see an overview of changes between each release.
 
+## Version 4.1.3_01
+
+Released on August 13th, 2020.
+
+* Added index for multivalued oxExternalUid.
+
 ## Version 4.1.2_01
 
 Released on August 13th, 2020.

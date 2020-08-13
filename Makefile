@@ -1,4 +1,4 @@
-GLUU_VERSION=4.1.2
+GLUU_VERSION=4.1.3
 IMAGE_NAME=gluufederation/persistence
 UNSTABLE_VERSION=dev
 
