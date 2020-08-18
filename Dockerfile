@@ -103,7 +103,8 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
     GLUU_PERSISTENCE_SKIP_EXISTING=true \
     GLUU_DOCUMENT_STORE_TYPE=LOCAL \
     GLUU_JACKRABBIT_RMI_URL=http://localhost:8080/rmi \
-    GLUU_JACKRABBIT_ADMIN_ID_FILE=/etc/gluu/conf/jackrabbit_admin_id
+    GLUU_JACKRABBIT_ADMIN_ID_FILE=/etc/gluu/conf/jackrabbit_admin_id \
+    GLUU_JACKRABBIT_ADMIN_PASSWORD_FILE=/etc/gluu/conf/jackrabbit_admin_password
 
 # ====
 # misc

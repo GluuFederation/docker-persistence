@@ -64,6 +64,7 @@ The following environment variables are supported by the container:
 - `GLUU_JCA_RMI_URL`: __DEPRECATED__ in favor of `GLUU_JACKRABBIT_RMI_URL`.
 - `GLUU_JACKRABBIT_RMI_URL`: URL to remote repository access (default to `http://localhost:8080/rmi`).
 - `GLUU_JACKRABBIT_ADMIN_ID_FILE`: Absolute path to file contains ID for admin user (default to `/etc/gluu/conf/jackrabbit_admin_id`).
+- `GLUU_JACKRABBIT_ADMIN_PASSWORD_FILE`: Absolute path to file contains password for admin user (default to `/etc/gluu/conf/jackrabbit_admin_password`).
 
 ## Initializing Data
 
