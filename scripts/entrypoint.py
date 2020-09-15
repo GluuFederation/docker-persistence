@@ -268,12 +268,18 @@ def render_ldif(src, dst, ctx):
 
 
 def get_jackrabbit_rmi_url():
+    # backward-compat
     if "GLUU_JCA_RMI_URL" in os.environ:
         return os.environ["GLUU_JCA_RMI_URL"]
 
-    return os.environ.get(
-        "GLUU_JACKRABBIT_RMI_URL", "http://localhost:8080/rmi",
-    )
+    # new style ENV
+    rmi_url = os.environ.get("GLUU_JACKRABBIT_RMI_URL", "")
+    if rmi_url:
+        return rmi_url
+
+    # fallback to default
+    base_url = os.environ.get("GLUU_JACKRABBIT_URL", "http://localhost:8080")
+    return f"{base_url}/rmi"
 
 
 def get_jackrabbit_creds():
