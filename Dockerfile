@@ -78,6 +78,8 @@ ENV GLUU_PERSISTENCE_TYPE=couchbase \
     GLUU_COUCHBASE_USER=admin \
     GLUU_COUCHBASE_CERT_FILE=/etc/certs/couchbase.crt \
     GLUU_COUCHBASE_PASSWORD_FILE=/etc/gluu/conf/couchbase_password \
+    GLUU_COUCHBASE_SUPERUSER="" \
+    GLUU_COUCHBASE_SUPERUSER_PASSWORD_FILE=/etc/gluu/conf/couchbase_superuser_password \
     GLUU_LDAP_URL=localhost:1636
 
 # ===========
@@ -115,7 +117,7 @@ LABEL name="Persistence" \
     maintainer="Gluu Inc. <support@gluu.org>" \
     vendor="Gluu Federation" \
     version="4.2.1" \
-    release="01" \
+    release="02" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"
 

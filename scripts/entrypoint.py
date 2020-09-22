@@ -22,7 +22,9 @@ from pygluu.containerlib.utils import safe_render
 from pygluu.containerlib.utils import generate_base64_contents
 from pygluu.containerlib.utils import as_boolean
 from pygluu.containerlib.persistence.couchbase import get_couchbase_user
+from pygluu.containerlib.persistence.couchbase import get_couchbase_superuser
 from pygluu.containerlib.persistence.couchbase import get_couchbase_password
+from pygluu.containerlib.persistence.couchbase import get_couchbase_superuser_password
 from pygluu.containerlib.persistence.couchbase import CouchbaseClient
 
 from settings import LOGGING_CONFIG
@@ -39,7 +41,6 @@ GLUU_MEMCACHED_URL = os.environ.get('GLUU_MEMCACHED_URL', 'localhost:11211')
 GLUU_OXTRUST_CONFIG_GENERATION = os.environ.get("GLUU_OXTRUST_CONFIG_GENERATION", True)
 GLUU_PERSISTENCE_TYPE = os.environ.get("GLUU_PERSISTENCE_TYPE", "couchbase")
 GLUU_PERSISTENCE_LDAP_MAPPING = os.environ.get("GLUU_PERSISTENCE_LDAP_MAPPING", "default")
-GLUU_COUCHBASE_URL = os.environ.get("GLUU_COUCHBASE_URL", "localhost")
 GLUU_LDAP_URL = os.environ.get("GLUU_LDAP_URL", "localhost:1636")
 
 GLUU_OXTRUST_API_ENABLED = os.environ.get("GLUU_OXTRUST_API_ENABLED", False)
@@ -544,9 +545,14 @@ def prepare_template_ctx(manager):
 
 class CouchbaseBackend(object):
     def __init__(self, manager):
-        hostname = GLUU_COUCHBASE_URL
-        user = get_couchbase_user(manager)
-        password = get_couchbase_password(manager)
+        hostname = os.environ.get("GLUU_COUCHBASE_URL", "localhost")
+        user = get_couchbase_superuser(manager) or get_couchbase_user(manager)
+
+        password = ""
+        with contextlib.suppress(FileNotFoundError):
+            password = get_couchbase_superuser_password(manager)
+        password = password or get_couchbase_password(manager)
+
         self.client = CouchbaseClient(hostname, user, password)
         self.manager = manager
 
@@ -739,6 +745,17 @@ class CouchbaseBackend(object):
 
         time.sleep(5)
         self.import_ldif(bucket_mappings)
+
+        time.sleep(5)
+        self.create_couchbase_shib_user()
+
+    def create_couchbase_shib_user(self):
+        self.client.create_user(
+            'couchbaseShibUser',
+            self.manager.secret.get("couchbase_shib_user_password"),
+            'Shibboleth IDP',
+            'query_select[*]',
+        )
 
 
 class LDAPBackend(object):

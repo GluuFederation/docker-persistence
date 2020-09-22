@@ -50,8 +50,10 @@ The following environment variables are supported by the container:
 - `GLUU_LDAP_URL`: Address and port of LDAP server (default to `localhost:1636`); required if `GLUU_PERSISTENCE_TYPE` is set to `ldap` or `hybrid`.
 - `GLUU_COUCHBASE_URL`: Address of Couchbase server (default to `localhost`); required if `GLUU_PERSISTENCE_TYPE` is set to `couchbase` or `hybrid`.
 - `GLUU_COUCHBASE_USER`: Username of Couchbase server (default to `admin`); required if `GLUU_PERSISTENCE_TYPE` is set to `couchbase` or `hybrid`.
+- `GLUU_COUCHBASE_SUPERUSER`: Superuser of Couchbase server (default to empty-string); required if `GLUU_PERSISTENCE_TYPE` is set to `couchbase` or `hybrid`. Fallback to `GLUU_COUCHBASE_USER`.
 - `GLUU_COUCHBASE_CERT_FILE`: Couchbase root certificate location (default to `/etc/certs/couchbase.crt`); required if `GLUU_PERSISTENCE_TYPE` is set to `couchbase` or `hybrid`.
 - `GLUU_COUCHBASE_PASSWORD_FILE`: Path to file contains Couchbase password (default to `/etc/gluu/conf/couchbase_password`); required if `GLUU_PERSISTENCE_TYPE` is set to `couchbase` or `hybrid`.
+- `GLUU_COUCHBASE_SUPERUSER_PASSWORD_FILE`: Path to file contains Couchbase superuser password (default to `/etc/gluu/conf/couchbase_superuser_password`); required if `GLUU_PERSISTENCE_TYPE` is set to `couchbase` or `hybrid`.
 - `GLUU_OXTRUST_API_ENABLED`: Enable oxTrust API (default to `false`).
 - `GLUU_OXTRUST_API_TEST_MODE`: Enable oxTrust API test mode; not recommended for production (default to `false`). If set to `false`, UMA mode is activated. See [oxTrust API docs](https://gluu.org/docs/oxtrust-api/4.1/) for reference.
 - `GLUU_CASA_ENABLED`: Enable Casa-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
@@ -101,7 +103,7 @@ docker run --rm \
     -e GLUU_LDAP_URL=ldap:1636 \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.2.0_01
+    gluufederation/persistence:4.2.0_02
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -116,8 +118,8 @@ Assuming there is Couchbase instance running hosted at `192.168.100.2` address, 
 Once cluster has been configured successfully, do the following steps:
 
 1. Pass the address of Couchbase server in `GLUU_COUCHBASE_URL` (omit the port)
-1. Pass the Couchbase user in `GLUU_COUCHBASE_USER`
-1. Save the password into `/path/to/couchbase_password` file
+1. Pass the Couchbase superuser in `GLUU_COUCHBASE_SUPERUSER`
+1. Save the password into `/path/to/couchbase_superuser_password` file
 1. Get the certificate root of Couchbase and save it into `/path/to/couchbase.crt` file
 
 Run the following command to initialize data and save it to Couchbase:
@@ -132,12 +134,12 @@ docker run --rm \
     -e GLUU_SECRET_VAULT_HOST=vault \
     -e GLUU_PERSISTENCE_TYPE=couchbase \
     -e GLUU_COUCHBASE_URL=192.168.100.2 \
-    -e GLUU_COUCHBASE_USER=admin \
+    -e GLUU_COUCHBASE_SUPERUSER=admin \
     -v /path/to/couchbase.crt:/etc/certs/couchbase.crt \
-    -v /path/to/couchbase_password:/etc/gluu/conf/couchbase_password \
+    -v /path/to/couchbase_superuser_password:/etc/gluu/conf/couchbase_superuser_password \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.2.0_01
+    gluufederation/persistence:4.2.0_02
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -176,8 +178,8 @@ Hybrid is a mix of LDAP and Couchbase persistence backend. To initialize data fo
     Once cluster has been configured successfully, do the following steps:
 
     1. Pass the address of Couchbase server in `GLUU_COUCHBASE_URL` (omit the port)
-    1. Pass the Couchbase user in `GLUU_COUCHBASE_USER`
-    1. Save the password into `/path/to/couchbase_password` file
+    1. Pass the Couchbase user in `GLUU_COUCHBASE_SUPERUSER`
+    1. Save the password into `/path/to/couchbase_superuser_password` file
     1. Get the certificate root of Couchbase and save it into `/path/to/couchbase.crt` file
 
 1.  Determine which data goes to LDAP backend by specifying it using `GLUU_PERSISTENCE_LDAP_MAPPING` environment variable. For example, if `user` data should be saved into LDAP, set `GLUU_PERSISTENCE_LDAP_MAPPING=user`. This will make other data saved into Couchbase.
@@ -196,10 +198,10 @@ Hybrid is a mix of LDAP and Couchbase persistence backend. To initialize data fo
         -e GLUU_PERSISTENCE_LDAP_MAPPING=user \
         -e GLUU_LDAP_URL=ldap:1636 \
         -e GLUU_COUCHBASE_URL=192.168.100.2 \
-        -e GLUU_COUCHBASE_USER=admin \
+        -e GLUU_COUCHBASE_SUPERUSER=admin \
         -v /path/to/couchbase.crt:/etc/certs/couchbase.crt \
-        -v /path/to/couchbase_password:/etc/gluu/conf/couchbase_password \
+        -v /path/to/couchbase_superuser_password:/etc/gluu/conf/couchbase_superuser_password \
         -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
         -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-        gluufederation/persistence:4.2.0_01
+        gluufederation/persistence:4.2.0_02
     ```
