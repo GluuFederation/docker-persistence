@@ -546,12 +546,16 @@ def prepare_template_ctx(manager):
 class CouchbaseBackend(object):
     def __init__(self, manager):
         hostname = os.environ.get("GLUU_COUCHBASE_URL", "localhost")
-        user = get_couchbase_superuser(manager) or get_couchbase_user(manager)
+        super_user = get_couchbase_superuser(manager)
+        user = super_user
+        if not super_user:
+            user = get_couchbase_user(manager)
 
         password = ""
         with contextlib.suppress(FileNotFoundError):
             password = get_couchbase_superuser_password(manager)
-        password = password or get_couchbase_password(manager)
+        if not password and not super_user:
+            password = get_couchbase_password(manager)
 
         self.client = CouchbaseClient(hostname, user, password)
         self.manager = manager
@@ -595,7 +599,8 @@ class CouchbaseBackend(object):
 
             memsize = int((mapping["mem_alloc"] / float(min_mem)) * total_mem)
 
-            logger.info("Creating bucket {0} with type {1} and RAM size {2}".format(mapping["bucket"], bucket_type, memsize))
+            logger.info("Creating bucket {0} with type {1} and RAM size {2}".format(mapping["bucket"], bucket_type,
+                                                                                    memsize))
             req = self.client.add_bucket(mapping["bucket"], memsize, bucket_type)
             if not req.ok:
                 logger.warning("Failed to create bucket {}; reason={}".format(mapping["bucket"], req.text))
@@ -630,7 +635,8 @@ class CouchbaseBackend(object):
                         attr_ = ','.join(['`{}`'.format(a) for a in index])
                         index_name = "def_{0}_{1}".format(bucket, '_'.join(index))
 
-                    f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket, attr_))
+                    f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket,
+                                                                                                    attr_))
                     index_names.append(index_name)
 
                 if index_names:
@@ -647,7 +653,8 @@ class CouchbaseBackend(object):
                             attrquoted.append(a)
                     attrquoteds = ', '.join(attrquoted)
 
-                    f.write('CREATE INDEX `{0}_static_{1:02d}` ON `{0}`({2}) WHERE ({3})\n'.format(bucket, sic, attrquoteds, wherec))
+                    f.write('CREATE INDEX `{0}_static_{1:02d}` ON `{0}`({2}) WHERE ({3})\n'.format(bucket, sic,
+                                                                                                   attrquoteds, wherec))
                     sic += 1
 
             # exec query
