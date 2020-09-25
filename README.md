@@ -86,7 +86,7 @@ docker run -d \
     -v /path/to/opendj/backup:/opt/opendj/bak \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/wrends:4.2.0_01
+    gluufederation/opendj:4.2.1_02
 ```
 
 Run the following command to initialize data and save it to LDAP:
@@ -103,7 +103,7 @@ docker run --rm \
     -e GLUU_LDAP_URL=ldap:1636 \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.2.0_02
+    gluufederation/persistence:4.2.1_02
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -139,7 +139,7 @@ docker run --rm \
     -v /path/to/couchbase_superuser_password:/etc/gluu/conf/couchbase_superuser_password \
     -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
     -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-    gluufederation/persistence:4.2.0_02
+    gluufederation/persistence:4.2.1_02
 ```
 
 The process may take awhile, check the output of the `persistence` container log.
@@ -165,7 +165,7 @@ Hybrid is a mix of LDAP and Couchbase persistence backend. To initialize data fo
         -v /path/to/opendj/backup:/opt/opendj/bak \
         -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
         -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-        gluufederation/wrends:4.2.0_01
+        gluufederation/opendj:4.2.1_02
     ```
 
 1.  Prepare Couchbase cluster.
@@ -203,5 +203,5 @@ Hybrid is a mix of LDAP and Couchbase persistence backend. To initialize data fo
         -v /path/to/couchbase_superuser_password:/etc/gluu/conf/couchbase_superuser_password \
         -v /path/to/vault_role_id.txt:/etc/certs/vault_role_id \
         -v /path/to/vault_secret_id.txt:/etc/certs/vault_secret_id \
-        gluufederation/persistence:4.2.0_02
+        gluufederation/persistence:4.2.1_02
     ```
