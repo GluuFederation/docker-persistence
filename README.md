@@ -5,7 +5,7 @@ Persistence is a special container to load initial data for LDAP or Couchbase.
 ## Versions
 
 See [Releases](https://github.com/GluuFederation/docker-persistence/releases) for stable versions.
-For bleeding-edge/unstable version, use `gluufederation/persistence:4.2.1_dev`.
+For bleeding-edge/unstable version, use `gluufederation/persistence:4.2.2_dev`.
 
 ## Environment Variables
 
