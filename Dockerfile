@@ -13,9 +13,10 @@ RUN apk update \
 # ======
 
 RUN apk add --no-cache py3-cryptography
-COPY requirements.txt /tmp/requirements.txt
+COPY requirements.txt /app/requirements.txt
 RUN pip3 install -U pip \
-    && pip3 install --no-cache-dir -r /tmp/requirements.txt
+    && pip3 install --no-cache-dir -r /app/requirements.txt \
+    && rm -rf /src/pygluu-containerlib/.git
 
 # =======
 # Cleanup
@@ -77,6 +78,8 @@ ENV GLUU_PERSISTENCE_TYPE=couchbase \
     GLUU_COUCHBASE_USER=admin \
     GLUU_COUCHBASE_CERT_FILE=/etc/certs/couchbase.crt \
     GLUU_COUCHBASE_PASSWORD_FILE=/etc/gluu/conf/couchbase_password \
+    GLUU_COUCHBASE_SUPERUSER="" \
+    GLUU_COUCHBASE_SUPERUSER_PASSWORD_FILE=/etc/gluu/conf/couchbase_superuser_password \
     GLUU_LDAP_URL=localhost:1636
 
 # ===========
@@ -100,7 +103,11 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
     GLUU_SCIM_ENABLED=false \
     GLUU_SCIM_TEST_MODE=false \
     GLUU_PERSISTENCE_SKIP_EXISTING=true \
-    GLUU_OXD_SERVER_URL=localhost:8443
+    GLUU_DOCUMENT_STORE_TYPE=LOCAL \
+    GLUU_JACKRABBIT_RMI_URL="" \
+    GLUU_JACKRABBIT_URL=http://localhost:8080 \
+    GLUU_JACKRABBIT_ADMIN_ID_FILE=/etc/gluu/conf/jackrabbit_admin_id \
+    GLUU_JACKRABBIT_ADMIN_PASSWORD_FILE=/etc/gluu/conf/jackrabbit_admin_password
 
 # ====
 # misc
@@ -109,7 +116,7 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
 LABEL name="Persistence" \
     maintainer="Gluu Inc. <support@gluu.org>" \
     vendor="Gluu Federation" \
-    version="4.2.0" \
+    version="4.2.1" \
     release="02" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"

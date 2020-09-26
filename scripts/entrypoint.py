@@ -1,3 +1,4 @@
+import contextlib
 import datetime
 import json
 import logging
@@ -5,7 +6,6 @@ import logging.config
 import os
 import time
 from collections import OrderedDict
-# from urllib.parse import urlparse
 
 from ldap3 import BASE
 from ldap3 import Connection
@@ -22,7 +22,9 @@ from pygluu.containerlib.utils import safe_render
 from pygluu.containerlib.utils import generate_base64_contents
 from pygluu.containerlib.utils import as_boolean
 from pygluu.containerlib.persistence.couchbase import get_couchbase_user
+from pygluu.containerlib.persistence.couchbase import get_couchbase_superuser
 from pygluu.containerlib.persistence.couchbase import get_couchbase_password
+from pygluu.containerlib.persistence.couchbase import get_couchbase_superuser_password
 from pygluu.containerlib.persistence.couchbase import CouchbaseClient
 
 from settings import LOGGING_CONFIG
@@ -39,7 +41,6 @@ GLUU_MEMCACHED_URL = os.environ.get('GLUU_MEMCACHED_URL', 'localhost:11211')
 GLUU_OXTRUST_CONFIG_GENERATION = os.environ.get("GLUU_OXTRUST_CONFIG_GENERATION", True)
 GLUU_PERSISTENCE_TYPE = os.environ.get("GLUU_PERSISTENCE_TYPE", "couchbase")
 GLUU_PERSISTENCE_LDAP_MAPPING = os.environ.get("GLUU_PERSISTENCE_LDAP_MAPPING", "default")
-GLUU_COUCHBASE_URL = os.environ.get("GLUU_COUCHBASE_URL", "localhost")
 GLUU_LDAP_URL = os.environ.get("GLUU_LDAP_URL", "localhost:1636")
 
 GLUU_OXTRUST_API_ENABLED = os.environ.get("GLUU_OXTRUST_API_ENABLED", False)
@@ -50,11 +51,6 @@ GLUU_CASA_ENABLED = os.environ.get("GLUU_CASA_ENABLED", False)
 GLUU_SAML_ENABLED = os.environ.get("GLUU_SAML_ENABLED", False)
 GLUU_SCIM_ENABLED = os.environ.get("GLUU_SCIM_ENABLED", False)
 GLUU_SCIM_TEST_MODE = os.environ.get("GLUU_SCIM_TEST_MODE", False)
-
-GLUU_DOCUMENT_STORE_TYPE = os.environ.get("GLUU_DOCUMENT_STORE_TYPE", "LOCAL")
-GLUU_JCA_RMI_URL = os.environ.get("GLUU_JCA_RMI_URL", "http://localhost:8080/rmi")
-GLUU_JCA_USERNAME = os.environ.get("GLUU_JCA_USERNAME", "admin")
-GLUU_JCA_PASSWORD_FILE = os.environ.get("GLUU_JCA_PASSWORD_FILE", "/etc/gluu/conf/jca_password")
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger("entrypoint")
@@ -126,9 +122,16 @@ def get_bucket_mappings():
         "cache": {
             "bucket": "gluu_cache",
             "files": [],
-            "mem_alloc": 300,
+            "mem_alloc": 100,
             "document_key_prefix": ["cache_"],
         },
+        "session": {
+            "bucket": "gluu_session",
+            "files": [],
+            "mem_alloc": 200,
+            "document_key_prefix": [],
+        },
+
     })
 
     if GLUU_PERSISTENCE_TYPE != "couchbase":
@@ -265,13 +268,34 @@ def render_ldif(src, dst, ctx):
         f.write(safe_render(txt, ctx))
 
 
-# def resolve_oxd_url(url):
-#     result = urlparse(url)
-#     scheme = result.scheme or "https"
-#     host_port = result.netloc or result.path
-#     host = host_port.split(":")[0]
-#     port = int(host_port.split(":")[-1])
-#     return scheme, host, port
+def get_jackrabbit_rmi_url():
+    # backward-compat
+    if "GLUU_JCA_RMI_URL" in os.environ:
+        return os.environ["GLUU_JCA_RMI_URL"]
+
+    # new style ENV
+    rmi_url = os.environ.get("GLUU_JACKRABBIT_RMI_URL", "")
+    if rmi_url:
+        return rmi_url
+
+    # fallback to default
+    base_url = os.environ.get("GLUU_JACKRABBIT_URL", "http://localhost:8080")
+    return f"{base_url}/rmi"
+
+
+def get_jackrabbit_creds():
+    username = os.environ.get("GLUU_JACKRABBIT_ADMIN_ID", "admin")
+    password = ""
+
+    password_file = os.environ.get(
+        "GLUU_JACKRABBIT_ADMIN_PASSWORD_FILE",
+        "/etc/gluu/conf/jackrabbit_admin_password",
+    )
+    with contextlib.suppress(FileNotFoundError):
+        with open(password_file) as f:
+            password = f.read().strip()
+    password = password or username
+    return username, password
 
 
 def get_base_ctx(manager):
@@ -284,17 +308,13 @@ def get_base_ctx(manager):
             manager.secret.get("encoded_salt"),
         ).decode()
 
-    jca_pw = "admin"
-    if os.path.isfile(GLUU_JCA_PASSWORD_FILE):
-        with open(GLUU_JCA_PASSWORD_FILE) as f:
-            jca_pw = f.read().strip()
+    doc_store_type = os.environ.get("GLUU_DOCUMENT_STORE_TYPE", "LOCAL")
+    jca_user, jca_pw = get_jackrabbit_creds()
 
     jca_pw_encoded = encode_text(
         jca_pw,
         manager.secret.get("encoded_salt"),
     ).decode()
-
-    # _, oxd_hostname, oxd_port = resolve_oxd_url(os.environ.get("GLUU_OXD_SERVER_URL", "localhost:8443"))
 
     ctx = {
         'cache_provider_type': GLUU_CACHE_TYPE,
@@ -307,9 +327,9 @@ def get_base_ctx(manager):
         "redis_sentinel_group": GLUU_REDIS_SENTINEL_GROUP,
         'memcached_url': GLUU_MEMCACHED_URL,
 
-        "document_store_type": GLUU_DOCUMENT_STORE_TYPE,
-        "jca_server_url": GLUU_JCA_RMI_URL,
-        "jca_username": GLUU_JCA_USERNAME,
+        "document_store_type": doc_store_type,
+        "jca_server_url": get_jackrabbit_rmi_url(),
+        "jca_username": jca_user,
         "jca_pw": jca_pw,
         "jca_pw_encoded": jca_pw_encoded,
 
@@ -525,9 +545,14 @@ def prepare_template_ctx(manager):
 
 class CouchbaseBackend(object):
     def __init__(self, manager):
-        hostname = GLUU_COUCHBASE_URL
-        user = get_couchbase_user(manager)
-        password = get_couchbase_password(manager)
+        hostname = os.environ.get("GLUU_COUCHBASE_URL", "localhost")
+        user = get_couchbase_superuser(manager) or get_couchbase_user(manager)
+
+        password = ""
+        with contextlib.suppress(FileNotFoundError):
+            password = get_couchbase_superuser_password(manager)
+        password = password or get_couchbase_password(manager)
+
         self.client = CouchbaseClient(hostname, user, password)
         self.manager = manager
 
@@ -721,6 +746,17 @@ class CouchbaseBackend(object):
         time.sleep(5)
         self.import_ldif(bucket_mappings)
 
+        time.sleep(5)
+        self.create_couchbase_shib_user()
+
+    def create_couchbase_shib_user(self):
+        self.client.create_user(
+            'couchbaseShibUser',
+            self.manager.secret.get("couchbase_shib_user_password"),
+            'Shibboleth IDP',
+            'query_select[*]',
+        )
+
 
 class LDAPBackend(object):
     def __init__(self, manager):
@@ -806,6 +842,7 @@ class LDAPBackend(object):
             ],
             "cache": [],
             "token": [],
+            "session": [],
         }
 
         # hybrid means only a subsets of ldif are needed

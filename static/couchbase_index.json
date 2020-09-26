@@ -1,41 +1,42 @@
 {
   "!bucket_prefix!_user": {
     "attributes": [
-      ["objectClass"], 
-      ["creationDate"], 
-      ["inum"], 
-      ["del","exp"], 
-      ["uid"], 
-      ["mail"], 
-      ["oxStatus"], 
-      ["oxApplication"], 
-      ["oxDeviceHashCode"], 
+      ["objectClass"],
+      ["creationDate"],
+      ["inum"],
+      ["del","exp"],
+      ["uid"],
+      ["mail"],
+      ["oxStatus"],
+      ["oxApplication"],
+      ["oxDeviceHashCode"],
       ["oxDeviceKeyHandle"],
       ["oxAuthClientId"],
       ["oxAuthUserId"]
     ],
     "static" : [
-      [["LOWER(`uid`)"], "objectClass = \"gluuPerson\""], 
-      [["LOWER(`mail`)"], "objectClass = \"gluuPerson\""], 
-      [["exp"], "del=true"] 
+      [["LOWER(`uid`)"], "objectClass = \"gluuPerson\""],
+      [["LOWER(`mail`)"], "objectClass = \"gluuPerson\""],
+      [["exp"], "del=true"],
+      [["distinct (array `oxExternalUid_` for `oxExternalUid_` in `oxExternalUid` end)"], "objectClass = \"gluuPerson\""]
     ]
   },
 
   "!bucket_prefix!": {
     "attributes": [
       ["objectClass"],
-      ["oxScriptType"], 
-      ["iat"], 
-      ["oxAuthClientSecretExpiresAt"], 
-      ["creationDate"], 
-      ["tknCde"], 
-      ["inum"], 
-      ["displayName"], 
-      ["oxAuthRegistrationAccessToken"], 
-      ["oxAuthUmaScope"], 
-      ["mail"], 
-      ["oxId"], 
-      ["oxTicket"], 
+      ["oxScriptType"],
+      ["iat"],
+      ["oxAuthClientSecretExpiresAt"],
+      ["creationDate"],
+      ["tknCde"],
+      ["inum"],
+      ["displayName"],
+      ["oxAuthRegistrationAccessToken"],
+      ["oxAuthUmaScope"],
+      ["mail"],
+      ["oxId"],
+      ["oxTicket"],
       ["del"],
       ["ssnId"],
       ["oxAuthClientId"],
@@ -84,13 +85,20 @@
 
   "!bucket_prefix!_token": {
     "attributes": [
-      ["authzCode"],
+      ["authzCode"]
+    ],
+    "static" : [
+        [["grtId"], "objectClass = \"token\""],
+        [["ssnId"], "objectClass = \"token\""]
+    ]
+  },
+
+  "!bucket_prefix!_session": {
+    "attributes": [
       ["oxAuthUserDN"]
     ],
     "static" : [
-      [["grtId"], "objectClass = \"token\""],
-      [["ssnId"], "objectClass = \"token\""],
-      [["exp"], "objectClass = \"oxAuthSessionId\""]
+        [["exp"], "objectClass = \"oxAuthSessionId\""]
     ]
   },
 
