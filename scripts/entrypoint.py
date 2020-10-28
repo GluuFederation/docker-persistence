@@ -566,13 +566,13 @@ class CouchbaseBackend(object):
 
         total_mem = (ram_info['quotaTotalPerNode'] - ram_info['quotaUsedPerNode']) / (1024 * 1024)
         # the minimum memory is a sum of required buckets + minimum mem for `gluu` bucket
-        min_mem = sum([value["mem_alloc"] for value in bucket_mappings.values()]) + 100
+        min_mem = sum(value["mem_alloc"] for value in bucket_mappings.values()) + 100
 
         logger.info("Memory size per node for Couchbase buckets was determined as {} MB".format(total_mem))
         logger.info("Minimum memory size per node for Couchbase buckets was determined as {} MB".format(min_mem))
 
         if total_mem < min_mem:
-            logger.error("Available quota on couchbase node is less than {} MB".format(min_mem))
+            logger.warning("Available quota on couchbase node is less than {} MB".format(min_mem))
 
         # always create `gluu` bucket even when `default` mapping stored in LDAP
         if GLUU_PERSISTENCE_TYPE == "hybrid" and GLUU_PERSISTENCE_LDAP_MAPPING == "default":
@@ -585,11 +585,11 @@ class CouchbaseBackend(object):
 
         req = self.client.get_buckets()
         if req.ok:
-            remote_buckets = tuple([bckt["name"] for bckt in req.json()])
+            remote_buckets = tuple(bckt["name"] for bckt in req.json())
         else:
-            remote_buckets = tuple([])
+            remote_buckets = []
 
-        for name, mapping in bucket_mappings.items():
+        for _, mapping in bucket_mappings.items():
             if mapping["bucket"] in remote_buckets:
                 continue
 
@@ -630,7 +630,9 @@ class CouchbaseBackend(object):
                         attr_ = ','.join(['`{}`'.format(a) for a in index])
                         index_name = "def_{0}_{1}".format(bucket, '_'.join(index))
 
-                    f.write('CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true};\n' % (index_name, bucket, attr_))
+                    f.write(
+                        'CREATE INDEX %s ON `%s`(%s) USING GSI WITH {"defer_build":true,"num_replica": %s};\n' % (index_name, bucket, attr_, self.index_num_replica)
+                    )
                     index_names.append(index_name)
 
                 if index_names:
@@ -647,7 +649,9 @@ class CouchbaseBackend(object):
                             attrquoted.append(a)
                     attrquoteds = ', '.join(attrquoted)
 
-                    f.write('CREATE INDEX `{0}_static_{1:02d}` ON `{0}`({2}) WHERE ({3})\n'.format(bucket, sic, attrquoteds, wherec))
+                    f.write(
+                        'CREATE INDEX `{0}_static_{1:02d}` ON `{0}`({2}) WHERE ({3}) WITH {{ "num_replica": {4} }}\n'.format(bucket, sic, attrquoteds, wherec, self.index_num_replica)
+                    )
                     sic += 1
 
             # exec query
@@ -661,9 +665,8 @@ class CouchbaseBackend(object):
                     if not req.ok:
                         # the following code should be ignored
                         # - 4300: index already exists
-                        # - 5000: index already built
                         error = req.json()["errors"][0]
-                        if error["code"] in (4300, 5000):
+                        if error["code"] in (4300,):
                             continue
                         logger.warning("Failed to execute query, reason={}".format(error["msg"]))
 
@@ -705,6 +708,10 @@ class CouchbaseBackend(object):
                         if not req.ok:
                             logger.warning("Failed to execute query, reason={}".format(req.json()))
 
+    def get_index_nodes(self):
+        req = self.client.rest_client.exec_api("pools/default", method="GET")
+        return [node for node in req.json()["nodes"] if "index" in node["services"]]
+
     def initialize(self):
         def is_initialized():
             persistence_type = os.environ.get("GLUU_PERSISTENCE_TYPE", "couchbase")
@@ -728,12 +735,13 @@ class CouchbaseBackend(object):
                 return bool(data["results"])
             return False
 
-        should_skip = as_boolean(
-            os.environ.get("GLUU_PERSISTENCE_SKIP_EXISTING", True),
-        )
-        if should_skip and is_initialized():
-            logger.info("Couchbase backend already initialized")
-            return
+        num_replica = int(os.environ.get("GLUU_COUCHBASE_INDEX_NUM_REPLICA", 0))
+        num_indexer_nodes = len(self.get_index_nodes())
+
+        if num_replica >= num_indexer_nodes:
+            raise ValueError(f"Number of index replica ({num_replica}) must be less than available indexer nodes ({num_indexer_nodes})")
+
+        self.index_num_replica = num_replica
 
         bucket_mappings = get_bucket_mappings()
 
@@ -744,6 +752,12 @@ class CouchbaseBackend(object):
         self.create_indexes(bucket_mappings)
 
         time.sleep(5)
+        should_skip = as_boolean(
+            os.environ.get("GLUU_PERSISTENCE_SKIP_EXISTING", True),
+        )
+        if should_skip and is_initialized():
+            logger.info("Couchbase backend already initialized")
+            return
         self.import_ldif(bucket_mappings)
 
         time.sleep(5)
@@ -788,7 +802,7 @@ class LDAPBackend(object):
         max_wait_time = 300
         sleep_duration = 10
 
-        for i in range(0, max_wait_time, sleep_duration):
+        for _ in range(0, max_wait_time, sleep_duration):
             try:
                 with self.conn as conn:
                     conn.search(
@@ -877,7 +891,7 @@ class LDAPBackend(object):
         max_wait_time = 300
         sleep_duration = 10
 
-        for i in range(0, max_wait_time, sleep_duration):
+        for _ in range(0, max_wait_time, sleep_duration):
             try:
                 with self.conn as conn:
                     conn.add(dn, attributes=attrs)
