@@ -67,9 +67,10 @@ def get_key_from(dn):
 
 
 def get_bucket_mappings():
+    prefix = os.environ.get("GLUU_COUCHBASE_BUCKET_PREFIX", "gluu")
     bucket_mappings = OrderedDict({
         "default": {
-            "bucket": "gluu",
+            "bucket": prefix,
             "files": [
                 "base.ldif",
                 "attributes.ldif",
@@ -97,7 +98,7 @@ def get_bucket_mappings():
             "document_key_prefix": [],
         },
         "user": {
-            "bucket": "gluu_user",
+            "bucket": f"{prefix}_user",
             "files": [
                 "people.ldif",
                 "groups.ldif",
@@ -106,7 +107,7 @@ def get_bucket_mappings():
             "document_key_prefix": ["groups_", "people_", "authorizations_"],
         },
         "site": {
-            "bucket": "gluu_site",
+            "bucket": f"{prefix}_site",
             "files": [
                 "o_site.ldif",
             ],
@@ -114,19 +115,19 @@ def get_bucket_mappings():
             "document_key_prefix": ["site_", "cache-refresh_"],
         },
         "token": {
-            "bucket": "gluu_token",
+            "bucket": f"{prefix}_token",
             "files": [],
             "mem_alloc": 300,
             "document_key_prefix": ["tokens_"],
         },
         "cache": {
-            "bucket": "gluu_cache",
+            "bucket": f"{prefix}_cache",
             "files": [],
             "mem_alloc": 100,
             "document_key_prefix": ["cache_"],
         },
         "session": {
-            "bucket": "gluu_session",
+            "bucket": f"{prefix}_session",
             "files": [],
             "mem_alloc": 200,
             "document_key_prefix": [],
@@ -602,9 +603,10 @@ class CouchbaseBackend(object):
 
     def create_indexes(self, bucket_mappings):
         buckets = [mapping["bucket"] for _, mapping in bucket_mappings.items()]
+        prefix = os.environ.get("GLUU_COUCHBASE_BUCKET_PREFIX", "gluu")
 
         with open("/app/static/couchbase_index.json") as f:
-            txt = f.read().replace("!bucket_prefix!", "gluu")
+            txt = f.read().replace("!bucket_prefix!", prefix)
             indexes = json.loads(txt)
 
         for bucket in buckets:
@@ -716,16 +718,17 @@ class CouchbaseBackend(object):
         def is_initialized():
             persistence_type = os.environ.get("GLUU_PERSISTENCE_TYPE", "couchbase")
             ldap_mapping = os.environ.get("GLUU_PERSISTENCE_LDAP_MAPPING", "default")
+            bucket_prefix = os.environ.get("GLUU_COUCHBASE_BUCKET_PREFIX", "gluu")
 
-            # only `gluu` and `gluu_user` buckets that may have initial data;
+            # only _default_ and _user_ buckets that may have initial data;
             # these data also affected by LDAP mapping selection;
-            # by default we will choose the `gluu` bucket
-            bucket, key = "gluu", "configuration_oxtrust"
+            # by default we will choose the _default_ bucket
+            bucket, key = bucket_prefix, "configuration_oxtrust"
 
             # if `hybrid` is selected and default mapping is stored in LDAP,
-            # the `gluu` bucket won't have data, hence we check the `gluu_user` instead
+            # the _default_ bucket won't have data, hence we check the _user_ bucket
             if persistence_type == "hybrid" and ldap_mapping == "default":
-                bucket, key = "gluu_user", "groups_60B7"
+                bucket, key = f"{bucket_prefix}_user", "groups_60B7"
 
             query = "SELECT objectClass FROM {0} USE KEYS '{1}'".format(bucket, key)
 

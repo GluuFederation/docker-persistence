@@ -57,6 +57,7 @@ The following environment variables are supported by the container:
 - `GLUU_COUCHBASE_INDEX_NUM_REPLICA`: Specify the number of replica for Couchbase indexes (default to `0`).
 - `GLUU_OXTRUST_API_ENABLED`: Enable oxTrust API (default to `false`).
 - `GLUU_OXTRUST_API_TEST_MODE`: Enable oxTrust API test mode; not recommended for production (default to `false`). If set to `false`, UMA mode is activated. See [oxTrust API docs](https://gluu.org/docs/oxtrust-api/4.1/) for reference.
+- `GLUU_COUCHBASE_BUCKET_PREFIX`: Prefix for Couchbase buckets (default to `gluu`).
 - `GLUU_CASA_ENABLED`: Enable Casa-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
 - `GLUU_PASSPORT_ENABLED`: Enable Passport-related features; custom scripts, ACR, UI menu, etc. (default to `false`).
 - `GLUU_RADIUS_ENABLED`: Enable Radius-related features; UI menu, etc. (default to `false`).
