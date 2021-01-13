@@ -6,13 +6,12 @@ FROM alpine:3.11
 
 RUN apk update \
     && apk add --no-cache py3-pip curl tini \
-    && apk add --no-cache --virtual build-deps git wget
+    && apk add --no-cache --virtual build-deps wget git gcc musl-dev python3-dev libffi-dev openssl-dev
 
 # ======
 # Python
 # ======
 
-RUN apk add --no-cache py3-cryptography
 COPY requirements.txt /app/requirements.txt
 RUN pip3 install -U pip \
     && pip3 install --no-cache-dir -r /app/requirements.txt \
@@ -117,8 +116,8 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
 LABEL name="Persistence" \
     maintainer="Gluu Inc. <support@gluu.org>" \
     vendor="Gluu Federation" \
-    version="4.2.2" \
-    release="02" \
+    version="4.2.3" \
+    release="dev" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"
 
