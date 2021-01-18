@@ -1262,7 +1262,7 @@ gluuAttributeEditType: admin
 gluuAttributeEditType: user
 gluuAttributeName: gluuIMAPData
 gluuAttributeOrigin: gluuPerson
-gluuAttributeType: json
+gluuAttributeType: imapdata
 gluuAttributeViewType: admin
 gluuAttributeViewType: user
 gluuSAML1URI: urn:mace:dir:attribute-def:gluuIMAPData
