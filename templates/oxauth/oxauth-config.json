@@ -266,6 +266,7 @@
     "sessionIdEnabled":true,
     "changeSessionIdOnAuthentication":true,
     "returnClientSecretOnRead": true,
+    "forceOfflineAccessScopeToEnableRefreshToken": false,
     "sessionIdPersistOnPromptNone":true,
     "sessionIdLifetime": 86400,
     "configurationUpdateInterval":3600,

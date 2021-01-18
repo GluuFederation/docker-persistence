@@ -6,13 +6,12 @@ FROM alpine:3.11
 
 RUN apk update \
     && apk add --no-cache py3-pip curl tini \
-    && apk add --no-cache --virtual build-deps git wget
+    && apk add --no-cache --virtual build-deps wget git gcc musl-dev python3-dev libffi-dev openssl-dev
 
 # ======
 # Python
 # ======
 
-RUN apk add --no-cache py3-cryptography py3-multidict py3-yarl
 COPY requirements.txt /app/requirements.txt
 RUN pip3 install -U pip \
     && pip3 install --no-cache-dir -r /app/requirements.txt \
@@ -80,6 +79,7 @@ ENV GLUU_PERSISTENCE_TYPE=couchbase \
     GLUU_COUCHBASE_PASSWORD_FILE=/etc/gluu/conf/couchbase_password \
     GLUU_COUCHBASE_SUPERUSER="" \
     GLUU_COUCHBASE_SUPERUSER_PASSWORD_FILE=/etc/gluu/conf/couchbase_superuser_password \
+    GLUU_COUCHBASE_BUCKET_PREFIX=gluu \
     GLUU_LDAP_URL=localhost:1636
 
 # ===========
@@ -116,7 +116,7 @@ ENV GLUU_CACHE_TYPE=NATIVE_PERSISTENCE \
 LABEL name="Persistence" \
     maintainer="Gluu Inc. <support@gluu.org>" \
     vendor="Gluu Federation" \
-    version="4.2.2" \
+    version="4.2.3" \
     release="dev" \
     summary="Gluu Persistence" \
     description="Generate initial data for persistence layer"
